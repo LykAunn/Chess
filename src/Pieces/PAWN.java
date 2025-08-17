@@ -95,7 +95,8 @@ public class PAWN extends Piece {
             return lastMove.getEndCol() == newCol &&
                     lastMove.getEndRow() == row &&
                     Math.abs(lastMove.getStartRow() - lastMove.getEndRow()) == 2 &&
-                    lastMove.pieceMoved == PieceType.PAWN;
+                    lastMove.pieceMoved == PieceType.PAWN &&
+                    board[newRow][newCol] == null;
         }
 
         return false;

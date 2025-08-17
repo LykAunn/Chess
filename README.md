@@ -1,13 +1,17 @@
 # My Chess Project
-Write a short sentence or two about this project and what it does. Be sure to include a link and a screenshot (we're front end devs so we can actually see our work!).
+A simple chess project that I started myself out of curiosity of game development. I learned Java in the 2nd semester
+of my first year in University which enabled me to thinker with projects like these. The goal of this project is to
+further enhance my java programming skills and familiarise myself with a real coding project. This programme is a 2
+player game where each player takes turns moving chess pieces with working possible moves detection and legit moves
+check. I am planning on integrating a bot for the player to face once I flush out the basic functions.
 
-**Link to project:** http://recruiters-love-seeing-live-demos.com/
+**Link to project:** https://github.com/LykAunn/Chess
 
 ![alt tag](http://placecorgi.com/1200/650)
 
 ## How It's Made:
 
-**Tech used:** HTML, CSS, JavaScript, Framework of choice
+**Tech used:** Java
 
 Here's where you can go to town on how you actually built this thing. Write as much as you can here, it's totally fine if it's not too much just make sure you write *something*. If you don't have too much experience on your resume working on the front end that's totally fine. This is where you can really show off your passion and make up for that ten fold.
 

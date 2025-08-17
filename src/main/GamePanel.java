@@ -281,8 +281,13 @@ public class GamePanel extends JPanel implements Runnable {
         Piece originalPiece = getPiece(originRow, originCol);
         Piece capturedPiece = getPiece(destRow, destCol);
 
-            board[destRow][destCol] = originalPiece;
-            board[originRow][originCol] = null;
+        if (isEnPassantMove(originRow, originCol, destRow, destCol)) {
+            capturedPiece = getPiece(originRow, destCol);
+            board[originRow][destCol] = null;
+        }
+
+        board[originRow][originCol] = null;
+        board[destRow][destCol] = originalPiece;
 
             originalPiece.row = destRow;
             originalPiece.col = destCol;
@@ -304,6 +309,16 @@ public class GamePanel extends JPanel implements Runnable {
 
     public Move getLastMove() {
         return lastMove;
+    }
+
+    public boolean isEnPassantMove(int originRow, int originCol, int newRow, int newCol) {
+        Piece originalPiece = getPiece(originRow, originCol);
+
+        if (originalPiece == null || originalPiece.getType() != PieceType.PAWN) return false;
+
+        return Math.abs(newCol - originCol) == 1 &&
+                Math.abs(newRow - originRow) == 1 &&
+                board[newRow][newCol] == null;
     }
 
 }
