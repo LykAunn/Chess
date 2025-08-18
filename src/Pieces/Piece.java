@@ -82,6 +82,7 @@ public abstract class Piece {
         return board[newRow][newCol] != null && board[newRow][newCol].getColor() != color;
     }
 
+    // Checks for available pieces until it hits the end
     protected ArrayList<Move> getSlidingMoves(Piece[][] board, int[][] directions) {
         ArrayList<Move> moves = new ArrayList<>();
         for (int[] dir : directions) {
@@ -107,6 +108,7 @@ public abstract class Piece {
         return moves;
     }
 
+    // Only check for given directions
     protected ArrayList<Move> getNonSlidingMoves(Piece[][] board, int[][] directions, int row, int col) {
         ArrayList<Move> moves = new ArrayList<>();
         for (int[] direction : directions) {
@@ -125,5 +127,9 @@ public abstract class Piece {
         }
 
         return moves;
+    }
+
+    public ArrayList<int[]> getPawnAttacks(Piece[][] board) {
+        return null;
     }
 }

@@ -34,6 +34,11 @@ public class Board {
         if (piece != null && piece.getColor() == currentColor) {
             ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
 
+            if (piece.getType() ==  PieceType.KING) {
+                possibleMoves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol()));
+            }
+
+
             if (observer != null) {
                 observer.onPieceSelected(row, col, possibleMoves);
             }
@@ -47,6 +52,10 @@ public class Board {
         }
 
         Piece capturedPiece = board[toRow][toCol];
+
+//        if (piece != null && piece.getType() ==  PieceType.PAWN) {
+//            ArrayList<int[]> test = piece.getPawnAttacks(board);
+//        }
 
         //En Passant
         if (isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
@@ -64,12 +73,24 @@ public class Board {
         lastMove = new Move(fromRow, fromCol, toRow, toCol, null, capturedType, piece.getType());
         moveHistory.add(lastMove);
 
+        if (checked(currentColor)) {
+            System.out.println("CHECK ON " + (currentColor == 0 ? "WHITE" : "BLACK") + " move");
+            gameState = GameState.CHECK;
+            if (observer != null) {
+                observer.onGameStateChanged(gameState);
+            }
+        }
+
+        if (checkMate(currentColor)) {
+            gameState = GameState.CHECKMATE;
+            if (observer != null) {
+                observer.onGameStateChanged(gameState);
+            }
+        }
+
         //Switch turns
         currentColor = currentColor == 0 ? 1 : 0;
 
-        if (checked(currentColor)) {
-            System.out.println("CHECK ON " + (currentColor == 0 ? "WHITE" : "BLACK") + " move");
-        }
 
         //Notify Observer about the move
         if (observer != null) {
@@ -113,14 +134,44 @@ public class Board {
     }
 
     // Check detection
+    public boolean isChecked(int targetRow, int targetCol) {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = board[row][col];
+                if (piece != null && piece.getColor() == currentColor) {
+                    ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
+                    for (Move move : possibleMoves) {
+                        if (move.getEndCol() == targetCol && move.getEndRow() == targetRow) {
+                            System.out.println("CHECK FOUND");
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean isAttacked(int targetRow, int targetCol) {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 Piece piece = board[row][col];
-                if (piece != null && piece.getColor() != currentColor) {
+                if (piece != null && piece.getColor() != currentColor && piece.getType() != PieceType.PAWN) {
+
                     ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
                     for (Move move : possibleMoves) {
                         if (move.getEndCol() == targetCol && move.getEndRow() == targetRow) {
+                            return true;
+                        }
+                    }
+
+                } else if (piece != null && piece.getType() == PieceType.PAWN && piece.getColor() != currentColor) {
+
+                    System.out.println("PAWN CHECK");
+                    ArrayList<int[]> attacks = piece.getPawnAttacks(board);
+                    for (int[] move : attacks) {
+                        if (move[0] == targetRow && move[1] == targetCol) {
+                            System.out.println("Attacked " + move[0] + " " + move[1]);
                             return true;
                         }
                     }
@@ -143,14 +194,31 @@ public class Board {
     }
 
     public boolean checked(int color) {
-        int[] kingPos = findKing(color);
+
+        int opponentColor = color == 0 ? 1 : 0;
+        int[] kingPos = findKing(opponentColor);
         if (kingPos == null) return false;
 
         int kingRow = kingPos[0];
         int kingCol = kingPos[1];
 
+
+        return isChecked(kingRow, kingCol);
+    }
+
+    public boolean checkMate(int color) {
         int opponentColor = color == 0 ? 1 : 0;
-        return isAttacked(kingRow, kingCol);
+        int[] kingPos = findKing(opponentColor);
+        if (kingPos == null) return false;
+
+        int kingRow = kingPos[0];
+        int kingCol = kingPos[1];
+
+        Piece king = board[kingRow][kingCol];
+        ArrayList<Move> moves = king.getPossibleMoves(board);
+        moves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol()));
+
+        return gameState == GameState.CHECK && moves.isEmpty();
     }
 
     public Piece getPiece(int row, int col) {
@@ -194,7 +262,7 @@ public class Board {
         for (int i = 0; i < 8; i++) {
             board[6][i] = new PAWN(0, 6, i, whiteOnBottom);
         }
-        board[5][5] = new KNIGHT(1, 5, 5, whiteOnBottom);
+//        board[5][5] = new KNIGHT(1, 5, 5, whiteOnBottom);
     }
 
     public void displayBoard() {

@@ -1,7 +1,6 @@
 package Pieces;
 
 import logic.Board;
-import main.GamePanel;
 
 import java.util.ArrayList;
 
@@ -22,7 +21,7 @@ public class PAWN extends Piece {
         }
 
         //Two Squares forward
-        if (isInBound(board, row + (direction * 2), col) && isNotObstructed(board, row + (direction * 2), col)) {
+        if (isInBound(board, row + (direction * 2), col) && isNotObstructed(board, row + (direction * 2), col) && (row == 1 || row == 6)) {
             moves.add(new Move(row, col, row + (direction * 2), col, null, null, null));
         }
 
@@ -100,6 +99,26 @@ public class PAWN extends Piece {
         }
 
         return false;
+    }
+
+    public ArrayList<int[]> getPawnAttacks(Piece[][] board) {
+        ArrayList<int[]> attacks = new ArrayList<>();
+        int direction = (color == 0 && whiteOnBottom) || (color == 1 && !whiteOnBottom) ? -1 : 1;
+
+        int attackRow = row + direction;
+        if (attackRow < 8 && attackRow >= 0) {
+            if (col - 1 >= 0) {
+                attacks.add(new int[]{attackRow, col - 1});
+                System.out.println("!!!!!!!! " + attackRow + "!" + (col - 1));
+            }
+
+            if (col + 1 < 8) {
+                attacks.add(new int[]{attackRow, col + 1});
+                System.out.println("!!!!!!!! " + attackRow + "!" + (col + 1));
+            }
+        }
+
+        return attacks;
     }
 }
 //        if (color.equals("WHITE") && whiteOnBottom) {

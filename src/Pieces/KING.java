@@ -1,6 +1,5 @@
 package Pieces;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class KING extends Piece {
@@ -13,7 +12,7 @@ public class KING extends Piece {
         ArrayList<Move> moves = new ArrayList<>();
 
         //Define all directions: Up, Down, Left, Right
-        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
 
         moves = getNonSlidingMoves(board, directions, row, col);
         return moves;

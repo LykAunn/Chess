@@ -161,7 +161,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     }
 
     public void run() {
-        double drawInterval = 1000000000 / fps;
+        double drawInterval = (double) 1000000000 / fps;
         double delta = 0;
         long lastTime = System.nanoTime();
         long currentTime;
