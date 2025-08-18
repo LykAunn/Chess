@@ -1,14 +1,14 @@
 package Pieces;
 
+import logic.Board;
 import main.GamePanel;
 
 import java.util.ArrayList;
 
 public class PAWN extends Piece {
 
-    public PAWN(int color, int row, int col, boolean whiteOnBottom, GamePanel gamePanel) {
+    public PAWN(int color, int row, int col, boolean whiteOnBottom) {
         super(color, PieceType.PAWN, row, col, whiteOnBottom);
-        this.gamePanel = gamePanel;
     }
 
     public ArrayList<Move> getPossibleMoves(Piece[][] board) {
@@ -89,7 +89,7 @@ public class PAWN extends Piece {
         }
 
         // Check if that pawn just moved 2 squares
-        Move lastMove = gamePanel.getLastMove();
+        Move lastMove = Board.getLastMove();
 
         if (lastMove != null) {
             return lastMove.getEndCol() == newCol &&
