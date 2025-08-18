@@ -67,6 +67,10 @@ public class Board {
         //Switch turns
         currentColor = currentColor == 0 ? 1 : 0;
 
+        if (checked(currentColor)) {
+            System.out.println("CHECK ON " + (currentColor == 0 ? "WHITE" : "BLACK") + " move");
+        }
+
         //Notify Observer about the move
         if (observer != null) {
             observer.onMoveExecuted(lastMove);
@@ -106,6 +110,47 @@ public class Board {
         return Math.abs(toCol - fromCol) == 1 &&
                 Math.abs(toRow - fromRow) == 1 &&
                 board[toRow][toCol] == null;
+    }
+
+    // Check detection
+    public boolean isAttacked(int targetRow, int targetCol) {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = board[row][col];
+                if (piece != null && piece.getColor() != currentColor) {
+                    ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
+                    for (Move move : possibleMoves) {
+                        if (move.getEndCol() == targetCol && move.getEndRow() == targetRow) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public int[] findKing(int color) {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = board[row][col];
+                if (piece != null && piece.getColor() == color && piece.getType() == PieceType.KING) {
+                    return new int[]{row, col};
+                }
+            }
+        }
+        return null;
+    }
+
+    public boolean checked(int color) {
+        int[] kingPos = findKing(color);
+        if (kingPos == null) return false;
+
+        int kingRow = kingPos[0];
+        int kingCol = kingPos[1];
+
+        int opponentColor = color == 0 ? 1 : 0;
+        return isAttacked(kingRow, kingCol);
     }
 
     public Piece getPiece(int row, int col) {
