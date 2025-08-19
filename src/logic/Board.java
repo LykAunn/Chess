@@ -1,6 +1,7 @@
 package logic;
 
 import Pieces.*;
+import main.Sound;
 
 import java.util.ArrayList;
 
@@ -12,6 +13,7 @@ public class Board {
     private static Move lastMove;
     private GameState gameState = GameState.PLAYING;
     public boolean whiteOnBottom;
+    Sound sound = new Sound();
 
     // Flags to track if pieces have moved
     private boolean whiteKingMoved = false;
@@ -25,6 +27,13 @@ public class Board {
         board = new Piece[8][8];
         moveHistory = new ArrayList<>();
         initializeBoard();
+        playSE(0);
+    }
+
+    public void playSE(int i) {
+
+        sound.setFile(i);
+        sound.play();
     }
 
     public void setObserver(GameObserver observer) {
@@ -77,10 +86,15 @@ public class Board {
         }
 
         if (isCastleMove(fromRow, fromCol, toRow, toCol)) {
+            int whichRow = currentColor == 0 ? 7 : 0;
             if (isRightSideCastle(fromRow, fromCol, toRow, toCol)) {
-                Piece castlePiece = board[7][7];
-                board[7][7] = null;
-                board[7][5] = castlePiece;
+                Piece castlePiece = board[whichRow][7];
+                board[whichRow][7] = null;
+                board[whichRow][5] = castlePiece;
+            } else {
+                Piece castlePiece = board[whichRow][0];
+                board[whichRow][0] = null;
+                board[whichRow][3] = castlePiece;
             }
         }
 
