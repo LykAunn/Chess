@@ -36,6 +36,16 @@ public class Board {
         sound.play();
     }
 
+    public void playRandomSE(int i, int j) {
+
+        double random =Math.random();
+        if (random < 0.5) {
+            playSE(i);
+        } else {
+            playSE(j);
+        }
+    }
+
     public void setObserver(GameObserver observer) {
         this.observer = observer;
     }
@@ -98,6 +108,14 @@ public class Board {
             }
         }
 
+        if(isCastleMove(fromRow, fromCol, toRow, toCol)) {
+            playRandomSE(5, 6);
+        } else if (capturedPiece != null || isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
+            playRandomSE(3, 4);
+        } else {
+            playRandomSE(1, 2);
+        }
+
         updateCastlingFlags(piece, fromRow, fromCol);
 
         board[fromRow][fromCol] = null;
@@ -113,6 +131,8 @@ public class Board {
         if (checked(currentColor)) {
             System.out.println("CHECK ON " + (currentColor == 0 ? "WHITE" : "BLACK") + " move");
             gameState = GameState.CHECK;
+
+            playRandomSE(7, 8);
             if (observer != null) {
                 observer.onGameStateChanged(gameState);
                 notifyObserver();
@@ -121,6 +141,8 @@ public class Board {
 
         if (checkMate(currentColor)) {
             gameState = GameState.CHECKMATE;
+
+            playSE(9);
             if (observer != null) {
                 observer.onGameStateChanged(gameState);
                 notifyObserver();
