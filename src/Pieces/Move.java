@@ -5,12 +5,13 @@ public class Move {
     int startCol;
     int endRow;
     int endCol;
+    int pieceColor;
 
     String typeOfMove;
     PieceType pieceCaptured;
     PieceType pieceMoved;
 
-    public Move(int startRow, int startCol, int endRow, int endCol, String typeOfMove, PieceType pieceCaptured, PieceType pieceMoved) {
+    public Move(int startRow, int startCol, int endRow, int endCol, String typeOfMove, PieceType pieceCaptured, PieceType pieceMoved, int pieceColor) {
         this.startRow = startRow;
         this.startCol = startCol;
         this.endRow = endRow;
@@ -18,6 +19,7 @@ public class Move {
         this.pieceCaptured = pieceCaptured;
         this.pieceMoved = pieceMoved;
         this.typeOfMove = typeOfMove;
+        this.pieceColor = pieceColor;
     }
 
     public String toString() {
@@ -35,5 +37,9 @@ public class Move {
     public int getStartRow() {
         return startRow;
     }
+
+    public PieceType getPieceMoved() { return pieceMoved; }
+
+    public int getPieceColor() { return pieceColor; }
 
 }

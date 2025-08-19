@@ -13,6 +13,14 @@ public class Board {
     private GameState gameState = GameState.PLAYING;
     public boolean whiteOnBottom;
 
+    // Flags to track if pieces have moved
+    private boolean whiteKingMoved = false;
+    private boolean blackKingMoved = false;
+    private boolean whiteKingsideRookMoved = false;
+    private boolean whiteQueensideRookMoved = false;
+    private boolean blackKingsideRookMoved = false;
+    private boolean blackQueensideRookMoved = false;
+
     public Board() {
         board = new Piece[8][8];
         moveHistory = new ArrayList<>();
@@ -35,7 +43,12 @@ public class Board {
             ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
 
             if (piece.getType() ==  PieceType.KING) {
-                possibleMoves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol()));
+                possibleMoves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol(), currentColor));
+                ArrayList<Move> castleMoves = getCastlingMoves(row, col, currentColor);
+
+
+                possibleMoves.addAll(castleMoves);
+
             }
 
 
@@ -63,6 +76,16 @@ public class Board {
             board[fromRow][toCol] = null;
         }
 
+        if (isCastleMove(fromRow, fromCol, toRow, toCol)) {
+            if (isRightSideCastle(fromRow, fromCol, toRow, toCol)) {
+                Piece castlePiece = board[7][7];
+                board[7][7] = null;
+                board[7][5] = castlePiece;
+            }
+        }
+
+        updateCastlingFlags(piece, fromRow, fromCol);
+
         board[fromRow][fromCol] = null;
         board[toRow][toCol] = piece;
         piece.row = toRow;
@@ -70,7 +93,7 @@ public class Board {
 
         //Record move into Move
         PieceType capturedType = capturedPiece == null ? null : capturedPiece.getType();
-        lastMove = new Move(fromRow, fromCol, toRow, toCol, null, capturedType, piece.getType());
+        lastMove = new Move(fromRow, fromCol, toRow, toCol, null, capturedType, piece.getType(), currentColor);
         moveHistory.add(lastMove);
 
         if (checked(currentColor)) {
@@ -78,6 +101,7 @@ public class Board {
             gameState = GameState.CHECK;
             if (observer != null) {
                 observer.onGameStateChanged(gameState);
+                notifyObserver();
             }
         }
 
@@ -85,6 +109,7 @@ public class Board {
             gameState = GameState.CHECKMATE;
             if (observer != null) {
                 observer.onGameStateChanged(gameState);
+                notifyObserver();
             }
         }
 
@@ -115,6 +140,14 @@ public class Board {
         if (piece == null) return false;
 
         ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
+        if (piece.getType() ==  PieceType.KING) {
+            possibleMoves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol(), currentColor));
+            ArrayList<Move> castleMoves = getCastlingMoves(fromRow, fromCol, currentColor);
+
+
+            possibleMoves.addAll(castleMoves);
+
+        }
         for (Move move : possibleMoves) {
             if (move.getEndCol() == toCol && move.getEndRow() == toRow) {
                 return true;
@@ -131,6 +164,19 @@ public class Board {
         return Math.abs(toCol - fromCol) == 1 &&
                 Math.abs(toRow - fromRow) == 1 &&
                 board[toRow][toCol] == null;
+    }
+
+    public boolean isCastleMove(int fromRow, int fromCol, int toRow, int toCol) {
+        Piece originalPiece = getPiece(fromRow, fromCol);
+
+        if (originalPiece == null || originalPiece.getType() != PieceType.KING) return false;
+
+        return Math.abs(toCol - fromCol) == 2 &&
+                board[toRow][toCol] == null;
+    }
+
+    public boolean isRightSideCastle(int fromRow, int fromCol, int toRow, int toCol) {
+        return isCastleMove(fromRow, fromCol, toRow, toCol) && (toCol - fromCol) == 2;
     }
 
     // Check detection
@@ -152,11 +198,11 @@ public class Board {
         return false;
     }
 
-    public boolean isAttacked(int targetRow, int targetCol) {
+    public boolean isAttacked(int targetRow, int targetCol, int color) {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 Piece piece = board[row][col];
-                if (piece != null && piece.getColor() != currentColor && piece.getType() != PieceType.PAWN) {
+                if (piece != null && piece.getColor() != color && piece.getType() != PieceType.PAWN) {
 
                     ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
                     for (Move move : possibleMoves) {
@@ -165,7 +211,7 @@ public class Board {
                         }
                     }
 
-                } else if (piece != null && piece.getType() == PieceType.PAWN && piece.getColor() != currentColor) {
+                } else if (piece != null && piece.getType() == PieceType.PAWN && piece.getColor() != color) {
 
                     System.out.println("PAWN CHECK");
                     ArrayList<int[]> attacks = piece.getPawnAttacks(board);
@@ -216,17 +262,103 @@ public class Board {
 
         Piece king = board[kingRow][kingCol];
         ArrayList<Move> moves = king.getPossibleMoves(board);
-        moves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol()));
+        moves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol(), color));
 
         return gameState == GameState.CHECK && moves.isEmpty();
     }
 
+    // KING CASTLING CHECKS
+    private boolean canCastleKingside(int kingRow, int kingCol, int color) {
+        if (board[kingRow][kingCol + 1] != null && board[kingRow][kingCol + 2] != null) return false;
+
+        if (isAttacked(kingRow, kingCol + 1, color) ||
+                isAttacked(kingRow, kingCol + 2, color)) return false;
+
+        Piece rook = board[kingRow][7];
+        return rook != null && rook.getType() == PieceType.ROOK && rook.getColor() == color;
+    }
+
+    private boolean canCastleQueenside(int kingRow, int kingCol, int playercolor) {
+        if (board[kingRow][kingCol - 1] != null &&
+                board[kingRow][kingCol - 2] != null &&
+                board[kingRow][kingCol - 3] != null) return false;
+
+        if (isAttacked(kingRow, kingCol + 1, playercolor) ||
+                isAttacked(kingRow, kingCol + 2, playercolor)) return false;
+
+        Piece rook = board[kingRow][0];
+        return rook != null && rook.getType() == PieceType.ROOK && rook.getColor() == playercolor;
+    }
+
+    private boolean hasKingMoved(int playerColor) {
+        return (playerColor == 0) ? whiteKingMoved : blackKingMoved;
+    }
+
+    private boolean hasRookMoved(int playerColor, boolean rightSide) {
+        if (playerColor == 0) {  // White
+            return rightSide ? whiteKingsideRookMoved : whiteQueensideRookMoved;
+        } else {  // Black
+            return rightSide ? blackKingsideRookMoved : blackQueensideRookMoved;
+        }
+    }
+
+    private void updateCastlingFlags(Piece piece, int fromRow, int fromCol) {
+        if (piece.getType() == PieceType.KING) {
+            if (piece.getColor() == 0) {  // White
+                whiteKingMoved = true;
+            } else {  // Black
+                blackKingMoved = true;
+            }
+        }
+
+        if (piece.getType() == PieceType.ROOK) {
+            if (piece.getColor() == 0) {  // White rooks
+                if (fromRow == 7 && fromCol == 0) {  // Queenside rook
+                    whiteQueensideRookMoved = true;
+                } else if (fromRow == 7 && fromCol == 7) {  // Kingside rook
+                    whiteKingsideRookMoved = true;
+                }
+            } else {  // Black rooks
+                if (fromRow == 0 && fromCol == 0) {  // Queenside rook
+                    blackQueensideRookMoved = true;
+                } else if (fromRow == 0 && fromCol == 7) {  // Kingside rook
+                    blackKingsideRookMoved = true;
+                }
+            }
+        }
+    }
+
+    public ArrayList<Move> getCastlingMoves(int kingRow, int kingCol, int playerColor) {
+        ArrayList<Move> castlingMoves = new ArrayList<>();
+
+        if (isChecked(kingRow, kingCol)) {
+            return castlingMoves;
+        }
+
+        if (!hasKingMoved(playerColor) && !hasRookMoved(playerColor, true) && canCastleKingside(kingRow, kingCol, playerColor)) {
+            castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol + 2, "CASTLERIGHT", null, PieceType.KING, playerColor));
+            System.out.println("FOUND CASTLE RIGHT");
+        }
+
+        if (!hasKingMoved(playerColor) && !hasRookMoved(playerColor, false) && canCastleQueenside(kingRow, kingCol, playerColor)) {
+            castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol - 2, "CASTLELEFT", null, PieceType.KING, playerColor));
+            System.out.println("FOUND CASTLE LEFT");
+        }
+
+        return castlingMoves;
+    }
+
+    // Getters
     public Piece getPiece(int row, int col) {
         return board[row][col];
     }
 
     public int getCurrentColor() {
         return currentColor;
+    }
+
+    public int getOpponentColor() {
+        return currentColor == 0 ? 1 : 0;
     }
 
     public static Move getLastMove() {

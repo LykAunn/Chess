@@ -95,9 +95,9 @@ public abstract class Piece {
 
                 if (isInBound(board, newRow, newCol)) {
                     if (board[newRow][newCol] == null) {
-                        moves.add(new Move(row, col, newRow, newCol, null, null, null));
+                        moves.add(new Move(row, col, newRow, newCol, null, null, null, getColor()));
                     } else if (targetCheck(board, newRow, newCol, color)) {
-                        moves.add(new Move(row, col, newRow, newCol, null, null, null));
+                        moves.add(new Move(row, col, newRow, newCol, null, null, null, getColor()));
                         break;
                     } else {
                         break;
@@ -120,7 +120,7 @@ public abstract class Piece {
 
             if (isInBound(board, newRow, newCol)) {
                 if (targetCheck(board, newRow, newCol, color) || board[newRow][newCol] == null) {
-                    moves.add(new Move(row, col, newRow, newCol, null, null, null));
+                    moves.add(new Move(row, col, newRow, newCol, null, null, null, getColor()));
                 }
 
             }

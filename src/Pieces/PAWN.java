@@ -17,29 +17,29 @@ public class PAWN extends Piece {
 
         //One Square forward
         if (isInBound(board, row + direction, col) && isNotObstructed(board, row + direction, col)) {
-            moves.add(new Move(row, col, row + direction, col, null, null, null));
+            moves.add(new Move(row, col, row + direction, col, null, null, null, getColor()));
         }
 
         //Two Squares forward
         if (isInBound(board, row + (direction * 2), col) && isNotObstructed(board, row + (direction * 2), col) && (row == 1 || row == 6)) {
-            moves.add(new Move(row, col, row + (direction * 2), col, null, null, null));
+            moves.add(new Move(row, col, row + (direction * 2), col, null, null, null, getColor()));
         }
 
         //Diagonal
         if (isInBound(board, row + direction, col + 1) && targetCheck(board, row + direction, col + 1, color)) {
-            moves.add(new Move(row, col, row + direction, col + 1, null, null, null));
+            moves.add(new Move(row, col, row + direction, col + 1, null, null, null, getColor()));
         }
         if (isInBound(board, row + direction, col - 1) && targetCheck(board, row + direction, col - 1, color)) {
-            moves.add(new Move(row, col, row + direction, col - 1, null, null, null));
+            moves.add(new Move(row, col, row + direction, col - 1, null, null, null, getColor()));
         }
 
         //En Passant Check
         if (enPassantCheck(board, row + direction, col + 1)) {
-            moves.add(new Move(row, col, row + direction, col + 1, "EnPassant", null, null)); //Right
+            moves.add(new Move(row, col, row + direction, col + 1, "EnPassant", null, null, getColor())); //Right
         }
 
         if (enPassantCheck(board, row + direction, col - 1)) {
-            moves.add(new Move(row, col, row + direction, col - 1, "EnPassant", null, null)); //Left
+            moves.add(new Move(row, col, row + direction, col - 1, "EnPassant", null, null, getColor())); //Left
         }
 
         return moves;
