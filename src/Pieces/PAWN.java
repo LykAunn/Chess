@@ -109,12 +109,10 @@ public class PAWN extends Piece {
         if (attackRow < 8 && attackRow >= 0) {
             if (col - 1 >= 0) {
                 attacks.add(new int[]{attackRow, col - 1});
-                System.out.println("!!!!!!!! " + attackRow + "!" + (col - 1));
             }
 
             if (col + 1 < 8) {
                 attacks.add(new int[]{attackRow, col + 1});
-                System.out.println("!!!!!!!! " + attackRow + "!" + (col + 1));
             }
         }
 

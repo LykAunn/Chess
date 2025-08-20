@@ -38,6 +38,8 @@ public class Move {
         return startRow;
     }
 
+    public int getStartCol() { return startCol; }
+
     public PieceType getPieceMoved() { return pieceMoved; }
 
     public int getPieceColor() { return pieceColor; }

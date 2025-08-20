@@ -55,6 +55,10 @@ public class PieceManager {
 
                 if (piece != null) {
 
+                    if (gp.isDragSource(row,col)) {
+                        continue; // Ignore render at that cell
+                    }
+
                     String color = (piece.color == 1) ? "white" : "black";
                     String key = color + "_" + piece.getType().name().toLowerCase();
                     BufferedImage image = images.get(key);
@@ -66,6 +70,23 @@ public class PieceManager {
                     }
                 }
             }
+        }
+    }
+
+    public void renderDraggedPiece(Graphics2D g, Piece piece, int mouseX, int mouseY) {
+        if (piece == null) return;
+
+        String color = (piece.color == 1) ? "white" : "black";
+        String key = color + "_" + piece.getType().name().toLowerCase();
+        BufferedImage image = images.get(key);
+
+        if (image != null) {
+
+            int dragSize = (int) (gp.tileSize * 1.05);
+            int x = mouseX - dragSize / 2;
+            int y = mouseY - dragSize / 2;
+
+            g.drawImage(image, x, y, dragSize, dragSize, null);
         }
     }
 

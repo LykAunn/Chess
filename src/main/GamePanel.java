@@ -26,6 +26,14 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     private boolean[][] possibleMoves;
     public boolean pieceSelected = false;
 
+    // Dragging
+    private boolean isDragging = false;
+    private Piece draggedPiece = null;
+    private int dragSourceRow = -1;
+    private int dragSourceCol = -1;
+    private int mouseX = 0;
+    private int mouseY = 0;
+
     private Board gameBoard;
 
     // Managers
@@ -48,6 +56,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
 
         Mouse mouse = new Mouse(this);
         addMouseListener(mouse);
+        addMouseMotionListener(mouse);
     }
 
     //Game Observer Implementation
@@ -115,6 +124,65 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         }
     }
 
+    public void handleMousePressed(int mouseX, int mouseY) {
+        int col = mouseX / tileSize;
+        int row = mouseY / tileSize;
+
+        if (isValidSquare(row, col)) {
+            Piece piece = gameBoard.getPiece(row, col);
+            if (piece != null && piece.getColor() == gameBoard.getCurrentColor()) {
+
+                // Store potential drag info
+                dragSourceRow = row;
+                dragSourceCol = col;
+                draggedPiece = piece;
+            }
+        }
+    }
+
+    public void handleDragStart(int x, int y) {
+        if (draggedPiece != null && dragSourceRow != -1 && dragSourceCol != -1) {
+            isDragging = true;
+            mouseX = x;
+            mouseY = y;
+
+            // Show possible moves
+            gameBoard.selectPiece(dragSourceRow, dragSourceCol);
+            repaint();
+        }
+    }
+
+    public void handleDragUpdate(int x, int y) {
+        if (isDragging) {
+            mouseX = x;
+            mouseY = y;
+            repaint();
+        }
+    }
+
+    public void handleDragEnd(int x, int y) {
+        if (isDragging) {
+            int col = x / tileSize;
+            int row = y / tileSize;
+
+            if (isValidSquare(row, col)) {
+                gameBoard.executeMove(dragSourceRow, dragSourceCol, row, col);
+            }
+
+            // Reset drag state
+            isDragging = false;
+            draggedPiece = null;
+            dragSourceRow = -1;
+            dragSourceCol = -1;
+            clearSelection();
+            repaint();
+        }
+    }
+
+    public boolean isDragSource(int row, int col) {
+        return isDragging && row == dragSourceRow && col == dragSourceCol;
+    }
+
     private boolean isValidSquare(int row, int col) {
         return row >= 0 && col >= 0 && row < 8 && col < 8;
     }
@@ -152,6 +220,10 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
 
         // DOT
         tileManager.renderDot(g2d, gameBoard);
+
+        if (isDragging && draggedPiece != null) {
+            pieceManager.renderDraggedPiece(g2d, draggedPiece, mouseX, mouseY);
+        }
 
     }
 

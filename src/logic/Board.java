@@ -22,6 +22,8 @@ public class Board {
     private boolean whiteQueensideRookMoved = false;
     private boolean blackKingsideRookMoved = false;
     private boolean blackQueensideRookMoved = false;
+    private boolean whiteChecked = false;
+    private boolean blackChecked = false;
 
     public Board() {
         board = new Piece[8][8];
@@ -59,30 +61,21 @@ public class Board {
     public void selectPiece(int row, int col) {
         Piece piece = board[row][col];
         if (piece != null && piece.getColor() == currentColor) {
-            ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
-
-            if (piece.getType() ==  PieceType.KING) {
-                possibleMoves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol(), currentColor));
-                ArrayList<Move> castleMoves = getCastlingMoves(row, col, currentColor);
-
-
-                possibleMoves.addAll(castleMoves);
-
-            }
-
+            ArrayList<Move> legalMoves = getLegalMoves(piece);
 
             if (observer != null) {
-                observer.onPieceSelected(row, col, possibleMoves);
+                observer.onPieceSelected(row, col, legalMoves);
             }
         }
     }
 
     public boolean executeMove(int fromRow, int fromCol, int toRow, int toCol) {
-        Piece piece = board[fromRow][fromCol];
-        if (piece == null || !isValidMove(fromRow, fromCol, toRow, toCol)) {
+
+        if (!isValidMove(fromRow, fromCol, toRow, toCol)) {
             return false;
         }
 
+        Piece piece = board[fromRow][fromCol];
         Piece capturedPiece = board[toRow][toCol];
 
 //        if (piece != null && piece.getType() ==  PieceType.PAWN) {
@@ -108,16 +101,7 @@ public class Board {
             }
         }
 
-        if(isCastleMove(fromRow, fromCol, toRow, toCol)) {
-            playRandomSE(5, 6);
-        } else if (capturedPiece != null || isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
-            playRandomSE(3, 4);
-        } else {
-            playRandomSE(1, 2);
-        }
-
-        updateCastlingFlags(piece, fromRow, fromCol);
-
+        // Execute the move
         board[fromRow][fromCol] = null;
         board[toRow][toCol] = piece;
         piece.row = toRow;
@@ -128,35 +112,43 @@ public class Board {
         lastMove = new Move(fromRow, fromCol, toRow, toCol, null, capturedType, piece.getType(), currentColor);
         moveHistory.add(lastMove);
 
-        if (checked(currentColor)) {
-            System.out.println("CHECK ON " + (currentColor == 0 ? "WHITE" : "BLACK") + " move");
-            gameState = GameState.CHECK;
-
-            playRandomSE(7, 8);
-            if (observer != null) {
-                observer.onGameStateChanged(gameState);
-                notifyObserver();
-            }
-        }
-
-        if (checkMate(currentColor)) {
-            gameState = GameState.CHECKMATE;
-
-            playSE(9);
-            if (observer != null) {
-                observer.onGameStateChanged(gameState);
-                notifyObserver();
-            }
-        }
+        // Update castling booleans
+        updateCastlingFlags(piece, fromRow, fromCol);
 
         //Switch turns
         currentColor = currentColor == 0 ? 1 : 0;
 
+        // Check game state for new current player
+        if (isInCheck(currentColor)) {
+            System.out.println("CHECK ON " + (currentColor == 0 ? "WHITE" : "BLACK") + " move");
+            if (checkmate(currentColor == 0 ? 1 : 0)) {
+                gameState = GameState.CHECKMATE;
+                playSE(9);
+            } else {
+                gameState = GameState.CHECK;
+                playRandomSE(7, 8);
+            }
 
-        //Notify Observer about the move
+        } else if (isStaleMate(currentColor)) {
+            gameState = GameState.STALEMATE;
+        } else {
+            gameState = GameState.PLAYING;
+        }
+
+        if (isCastleMove(fromRow, fromCol, toRow, toCol)) {
+            playRandomSE(5, 6);
+        } else if (capturedPiece != null || isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
+            playRandomSE(3, 4);
+        } else {
+            playRandomSE(1, 2);
+        }
+
+
+        //Notify Observers about the move
         if (observer != null) {
             observer.onMoveExecuted(lastMove);
             observer.onTurnChanged(currentColor);
+            observer.onGameStateChanged(gameState);
             displayBoard();
         }
 
@@ -175,21 +167,61 @@ public class Board {
         Piece piece = getPiece(fromRow, fromCol);
         if (piece == null) return false;
 
-        ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
-        if (piece.getType() ==  PieceType.KING) {
-            possibleMoves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol(), currentColor));
-            ArrayList<Move> castleMoves = getCastlingMoves(fromRow, fromCol, currentColor);
+        ArrayList<Move> legalMoves = getLegalMoves(piece);
 
-
-            possibleMoves.addAll(castleMoves);
-
-        }
-        for (Move move : possibleMoves) {
+        for (Move move : legalMoves) {
             if (move.getEndCol() == toCol && move.getEndRow() == toRow) {
                 return true;
             }
         }
         return false;
+    }
+
+    public boolean isMoveLegal(int fromRow, int fromCol, int toRow, int toCol) {
+        Piece piece = board[fromRow][fromCol];
+        if (piece == null) return false;
+
+        Piece capturedPiece = board[toRow][toCol];
+
+        // Temporary Move
+        board[toRow][toCol] = piece;
+        board[fromRow][fromCol] = null;
+        piece.row = toRow;
+        piece.col = toCol;
+
+        int[] kingPos = findKing(piece.getColor());
+        boolean isLegal = true;
+
+        if (kingPos != null) {
+            isLegal = !isAttacked(kingPos[0], kingPos[1], piece.getColor());
+        }
+
+        // Restore original board
+        board[fromRow][fromCol] = piece;
+        board[toRow][toCol] = capturedPiece;
+        piece.row = fromRow;
+        piece.col = fromCol;
+
+        return isLegal;
+    }
+
+    private ArrayList<Move> getLegalMoves(Piece piece) {
+        ArrayList<Move> allMoves = piece.getPossibleMoves(board);
+        ArrayList<Move> legalMoves = new ArrayList<>();
+
+        for (Move move : allMoves) {
+            if (isMoveLegal(move.getStartRow(), move.getStartCol(), move.getEndRow(), move.getEndCol())) {
+                legalMoves.add(move);
+            }
+        }
+
+        // Add Castling Move for king
+        if (piece.getType() ==  PieceType.KING) {
+            ArrayList<Move> castleMoves = getCastlingMoves(piece.getRow(), piece.getCol(), piece.getColor());
+            legalMoves.addAll(castleMoves);
+        }
+
+        return legalMoves;
     }
 
     public boolean isEnPassantMove(int fromRow, int fromCol, int toRow, int toCol) {
@@ -216,46 +248,33 @@ public class Board {
     }
 
     // Check detection
-    public boolean isChecked(int targetRow, int targetCol) {
+    public boolean isAttacked(int targetRow, int targetCol, int defendingColor) {
+        int attackingColor = defendingColor == 0 ? 1 : 0;
+
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 Piece piece = board[row][col];
-                if (piece != null && piece.getColor() == currentColor) {
-                    ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
-                    for (Move move : possibleMoves) {
-                        if (move.getEndCol() == targetCol && move.getEndRow() == targetRow) {
-                            System.out.println("CHECK FOUND");
-                            return true;
+
+                if (piece != null && piece.getColor() == attackingColor) {
+
+                    if (piece.getType() == PieceType.PAWN) {
+                        // Special case for pawns with special attacking move
+                        ArrayList<int[]> attacks = piece.getPawnAttacks(board);
+                        for (int[] attack : attacks) {
+                            if (attack[0] == targetRow && attack[1] == targetCol) {
+                                return true;
+                            }
                         }
-                    }
-                }
-            }
-        }
-        return false;
-    }
 
-    public boolean isAttacked(int targetRow, int targetCol, int color) {
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                Piece piece = board[row][col];
-                if (piece != null && piece.getColor() != color && piece.getType() != PieceType.PAWN) {
-
-                    ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
-                    for (Move move : possibleMoves) {
-                        if (move.getEndCol() == targetCol && move.getEndRow() == targetRow) {
-                            return true;
+                    } else {
+                        // Check possible moves for other pieces
+                        ArrayList<Move> possibleMoves = piece.getPossibleMoves(board);
+                        for (Move move : possibleMoves) {
+                            if (move.getEndRow() == targetRow && move.getEndCol() == targetCol) {
+                                return true;
+                            }
                         }
-                    }
 
-                } else if (piece != null && piece.getType() == PieceType.PAWN && piece.getColor() != color) {
-
-                    System.out.println("PAWN CHECK");
-                    ArrayList<int[]> attacks = piece.getPawnAttacks(board);
-                    for (int[] move : attacks) {
-                        if (move[0] == targetRow && move[1] == targetCol) {
-                            System.out.println("Attacked " + move[0] + " " + move[1]);
-                            return true;
-                        }
                     }
                 }
             }
@@ -275,7 +294,7 @@ public class Board {
         return null;
     }
 
-    public boolean checked(int color) {
+    public boolean checkedOpponent(int color) {
 
         int opponentColor = color == 0 ? 1 : 0;
         int[] kingPos = findKing(opponentColor);
@@ -285,10 +304,10 @@ public class Board {
         int kingCol = kingPos[1];
 
 
-        return isChecked(kingRow, kingCol);
+        return isAttacked(kingRow, kingCol, opponentColor);
     }
 
-    public boolean checkMate(int color) {
+    public boolean checkMateOpponent(int color) {
         int opponentColor = color == 0 ? 1 : 0;
         int[] kingPos = findKing(opponentColor);
         if (kingPos == null) return false;
@@ -298,10 +317,60 @@ public class Board {
 
         Piece king = board[kingRow][kingCol];
         ArrayList<Move> moves = king.getPossibleMoves(board);
-        moves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol(), color));
+        moves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol(), opponentColor));
 
         return gameState == GameState.CHECK && moves.isEmpty();
     }
+
+    public boolean checkmate(int color) {
+        int opponentColor = color == 0 ? 1 : 0;
+
+        // Must be in check
+        if (isInCheck(color)) {
+            return false;
+
+        }
+
+        // Check for legal moves
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = board[row][col];
+                if (piece != null && piece.getColor() == opponentColor) {
+                    ArrayList<Move> legalMoves = getLegalMoves(piece);
+                    if (legalMoves.isEmpty()) return false;
+                }
+            }
+        }
+
+        return true; // No legal moves found = Checkmate
+    }
+
+    public boolean isInCheck(int color) {
+        int[] kingPos = findKing(color);
+        if (kingPos == null) return false;
+
+        return isAttacked(kingPos[0], kingPos[1], color);
+    }
+
+    // Stalemate detection (Not in check but no legal moves)
+    public boolean isStaleMate(int color) {
+        if (isInCheck(color)) {
+            return false;
+        }
+
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece piece = board[row][col];
+                if (piece != null && piece.getColor() == color) {
+                    ArrayList<Move> legalMoves = getLegalMoves(piece);
+                    if (!legalMoves.isEmpty()) return false; // FOUND LEGAL MOVE
+                }
+            }
+        }
+
+        return true; // No legal moves and not in check
+    }
+
 
     // KING CASTLING CHECKS
     private boolean canCastleKingside(int kingRow, int kingCol, int color) {
@@ -367,18 +436,31 @@ public class Board {
     public ArrayList<Move> getCastlingMoves(int kingRow, int kingCol, int playerColor) {
         ArrayList<Move> castlingMoves = new ArrayList<>();
 
-        if (isChecked(kingRow, kingCol)) {
+        // Unable to castle in check
+        if (isAttacked(kingRow, kingCol, playerColor)) {
             return castlingMoves;
         }
 
-        if (!hasKingMoved(playerColor) && !hasRookMoved(playerColor, true) && canCastleKingside(kingRow, kingCol, playerColor)) {
-            castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol + 2, "CASTLERIGHT", null, PieceType.KING, playerColor));
-            System.out.println("FOUND CASTLE RIGHT");
+        if (!hasKingMoved(playerColor) && !hasRookMoved(playerColor, true)) {
+
+            if (canCastleKingside(kingRow, kingCol, playerColor)) {
+
+                if (!isAttacked(kingRow, kingCol + 1, playerColor) && !isAttacked(kingRow, kingCol + 2, playerColor)) {
+                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol + 2, "CASTLERIGHT", null, PieceType.KING, playerColor));
+                    System.out.println("FOUND CASTLE RIGHT");
+                }
+            }
+
         }
 
         if (!hasKingMoved(playerColor) && !hasRookMoved(playerColor, false) && canCastleQueenside(kingRow, kingCol, playerColor)) {
-            castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol - 2, "CASTLELEFT", null, PieceType.KING, playerColor));
-            System.out.println("FOUND CASTLE LEFT");
+            if (canCastleKingside(kingRow, kingCol, playerColor)) {
+
+                if (!isAttacked(kingRow, kingCol - 1, playerColor) && !isAttacked(kingRow, kingCol - 2, playerColor)) {
+                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol - 2, "CASTLERIGHT", null, PieceType.KING, playerColor));
+                    System.out.println("FOUND CASTLE RIGHT");
+                }
+            }
         }
 
         return castlingMoves;
