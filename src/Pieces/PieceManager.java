@@ -17,11 +17,14 @@ public class PieceManager {
     private static final Map<String, BufferedImage> images = new HashMap<>();
     int pieceSize;
     int pieceShift;
+    public BufferedImage piece1, piece2, piece3;
 
     public PieceManager(GamePanel gp) {
         this.gp = gp;
         pieceSize = (int) (gp.tileSize * 0.9);
         pieceShift = (int) (gp.tileSize * 0.05);
+
+        getImages();
 
     }
 
@@ -46,6 +49,17 @@ public class PieceManager {
         }
     }
 
+    public void getImages() {
+        try  {
+            piece1 = ImageIO.read(getClass().getClassLoader().getResourceAsStream("pieces/WhiteKing.png"));
+            piece2 = ImageIO.read(getClass().getClassLoader().getResourceAsStream("pieces/BlackPawn.png"));
+            piece3 = ImageIO.read(getClass().getClassLoader().getResourceAsStream("pieces/wHITEBishop.png"));
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void renderPieces(Graphics2D g, Board board) {
 
         for (int row = 0; row < 8; row++) {
@@ -59,7 +73,7 @@ public class PieceManager {
                         continue; // Ignore render at that cell
                     }
 
-                    String color = (piece.color == 1) ? "white" : "black";
+                    String color = (piece.color == 1) ? "black" : "white";
                     String key = color + "_" + piece.getType().name().toLowerCase();
                     BufferedImage image = images.get(key);
 

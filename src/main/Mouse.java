@@ -22,6 +22,7 @@ public class Mouse extends MouseAdapter {
         x = e.getX();
         y = e.getY();
         gamePanel.handleClick(x, y);
+        gamePanel.callUIToHandleClick(x, y);
     }
 
     public void mousePressed(MouseEvent e) {

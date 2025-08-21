@@ -73,9 +73,13 @@ public class PAWN extends Piece {
             return false;
         }
 
-        // Pawn must be at correct rank
-        if ((color == 0 && row != 3) || (color == 1 && row != 4)) {
-            return false;
+        // Pawn must be at correct rank for en passant
+        if (color == 0) { // White pawn
+            int enPassantRow = whiteOnBottom ? 3 : 4;
+            if (row != enPassantRow) return false;
+        } else { // Black pawn
+            int enPassantRow = whiteOnBottom ? 4 : 3;
+            if (row != enPassantRow) return false;
         }
 
         // Adjacent square (same row as your pawn) must have enemy pawn

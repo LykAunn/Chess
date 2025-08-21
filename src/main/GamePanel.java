@@ -6,9 +6,12 @@ import logic.Board;
 import logic.GameObserver;
 import logic.GameState;
 
+import javax.sound.midi.SysexMessage;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+
+import static logic.GameState.TITLE;
 
 public class GamePanel extends JPanel implements Runnable, GameObserver {
 
@@ -38,12 +41,16 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
 
     // Managers
     private final TileManager tileManager;
-    private final PieceManager pieceManager;
+    final PieceManager pieceManager;
+    private final UI ui;
     Thread gameThread;
     final int fps = 60;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
+        this.setBackground(Color.BLACK);
+        this.setDoubleBuffered(true);
+        this.setFocusable(true);
         possibleMoves = new boolean[8][8];
 
         // Initialize game board and register as observer
@@ -52,6 +59,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
 
         tileManager = new TileManager(this);
         pieceManager = new PieceManager(this);
+        ui = new UI(this);
         tileManager.getTileImage();
 
         Mouse mouse = new Mouse(this);
@@ -100,7 +108,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         if (!isValidSquare(clickedRow, clickedCol)) return;
 
         Piece clickedPiece = gameBoard.getPiece(clickedRow, clickedCol);
-
+        
         if (pieceSelected) {
             // Try to move
             if (isPossibleMove(clickedRow, clickedCol)) {
@@ -118,6 +126,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
             }
 
         } else {
+            // Select the piece
             if (clickedPiece != null && clickedPiece.getColor() == gameBoard.getCurrentColor()) {
                 gameBoard.selectPiece(clickedRow, clickedCol);
             }
@@ -210,20 +219,39 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         }
     }
 
+    public void setGameState(GameState gameState) {
+        gameBoard.setGameState(gameState);
+    }
+
+    public void setPlayerColor(boolean whiteBottom) {
+        gameBoard.setPlayerColor(whiteBottom);
+        gameBoard.startGame();
+    }
+
+    public GameState getGameState() {
+        return gameBoard.getGameState();
+    }
+
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g; //Convert Graphics class to Graphics2D
 
-        // TILE
-        tileManager.render(g2d, gameBoard);
-        pieceManager.renderPieces(g2d, gameBoard);
+        if (gameBoard.getGameState() == TITLE) {
+            ui.draw(g2d);
+        } else {
+            // TILE
+            tileManager.render(g2d, gameBoard);
+            pieceManager.renderPieces(g2d, gameBoard);
 
-        // DOT
-        tileManager.renderDot(g2d, gameBoard);
+            // DOT
+            tileManager.renderDot(g2d, gameBoard);
 
-        if (isDragging && draggedPiece != null) {
-            pieceManager.renderDraggedPiece(g2d, draggedPiece, mouseX, mouseY);
+            // Moving pieces while dragging
+            if (isDragging && draggedPiece != null) {
+                pieceManager.renderDraggedPiece(g2d, draggedPiece, mouseX, mouseY);
+            }
         }
+
 
     }
 
@@ -259,5 +287,9 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
                 timer = 0;
             }
         }
+    }
+
+    public void callUIToHandleClick(int x, int y) {
+        ui.handleClick(x, y);
     }
 }

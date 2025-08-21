@@ -11,7 +11,7 @@ public class Board {
     private int currentColor = 0;
     private ArrayList<Move> moveHistory;
     private static Move lastMove;
-    private GameState gameState = GameState.PLAYING;
+    private GameState gameState = GameState.TITLE;
     public boolean whiteOnBottom;
     Sound sound = new Sound();
 
@@ -28,8 +28,11 @@ public class Board {
     public Board() {
         board = new Piece[8][8];
         moveHistory = new ArrayList<>();
-        initializeBoard();
         playSE(0);
+    }
+
+    public void startGame() {
+        initializeBoard();
     }
 
     public void playSE(int i) {
@@ -59,6 +62,8 @@ public class Board {
     }
 
     public void selectPiece(int row, int col) {
+
+        System.out.println(currentColor);
         Piece piece = board[row][col];
         if (piece != null && piece.getColor() == currentColor) {
             ArrayList<Move> legalMoves = getLegalMoves(piece);
@@ -82,10 +87,13 @@ public class Board {
 //            ArrayList<int[]> test = piece.getPawnAttacks(board);
 //        }
 
+        String typeOfMove = null;
+
         //En Passant
         if (isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
             capturedPiece = board[fromRow][toCol];
             board[fromRow][toCol] = null;
+            typeOfMove = "ENPASSANT";
         }
 
         if (isCastleMove(fromRow, fromCol, toRow, toCol)) {
@@ -94,10 +102,12 @@ public class Board {
                 Piece castlePiece = board[whichRow][7];
                 board[whichRow][7] = null;
                 board[whichRow][5] = castlePiece;
+                typeOfMove = "CASTLEKINGSIDE";
             } else {
                 Piece castlePiece = board[whichRow][0];
                 board[whichRow][0] = null;
                 board[whichRow][3] = castlePiece;
+                typeOfMove = "CASTLEQUEENSIDE";
             }
         }
 
@@ -109,7 +119,7 @@ public class Board {
 
         //Record move into Move
         PieceType capturedType = capturedPiece == null ? null : capturedPiece.getType();
-        lastMove = new Move(fromRow, fromCol, toRow, toCol, null, capturedType, piece.getType(), currentColor);
+        lastMove = new Move(fromRow, fromCol, toRow, toCol, typeOfMove, capturedType, piece.getType(), currentColor);
         moveHistory.add(lastMove);
 
         // Update castling booleans
@@ -294,34 +304,6 @@ public class Board {
         return null;
     }
 
-    public boolean checkedOpponent(int color) {
-
-        int opponentColor = color == 0 ? 1 : 0;
-        int[] kingPos = findKing(opponentColor);
-        if (kingPos == null) return false;
-
-        int kingRow = kingPos[0];
-        int kingCol = kingPos[1];
-
-
-        return isAttacked(kingRow, kingCol, opponentColor);
-    }
-
-    public boolean checkMateOpponent(int color) {
-        int opponentColor = color == 0 ? 1 : 0;
-        int[] kingPos = findKing(opponentColor);
-        if (kingPos == null) return false;
-
-        int kingRow = kingPos[0];
-        int kingCol = kingPos[1];
-
-        Piece king = board[kingRow][kingCol];
-        ArrayList<Move> moves = king.getPossibleMoves(board);
-        moves.removeIf(move -> isAttacked(move.getEndRow(), move.getEndCol(), opponentColor));
-
-        return gameState == GameState.CHECK && moves.isEmpty();
-    }
-
     public boolean checkmate(int color) {
         int opponentColor = color == 0 ? 1 : 0;
 
@@ -466,6 +448,14 @@ public class Board {
         return castlingMoves;
     }
 
+    public void setGameState(GameState gameState) {
+        this.gameState = gameState;
+    }
+
+    public void setPlayerColor(boolean whiteBottom) {
+        whiteOnBottom = whiteBottom;
+    }
+
     // Getters
     public Piece getPiece(int row, int col) {
         return board[row][col];
@@ -483,36 +473,53 @@ public class Board {
         return lastMove;
     }
 
+    public GameState getGameState() {
+        return gameState;
+    }
+
     public void initializeBoard() {
+        int whiteColor = 0; // white = 0
+        int blackColor = 1; // black = 1
 
-        whiteOnBottom = true;
+        // Row positions depend on orientation
+        int whiteRow1 = whiteOnBottom ? 7 : 0; // main pieces
+        int whiteRow2 = whiteOnBottom ? 6 : 1; // pawns
+        int blackRow1 = whiteOnBottom ? 0 : 7; // main pieces
+        int blackRow2 = whiteOnBottom ? 1 : 6; // pawns
 
-        //Black Pieces (top)
-        board[0][0] = new ROOK(1, 0, 0, whiteOnBottom);
-        board[0][1] = new KNIGHT(1, 0, 1, whiteOnBottom);
-        board[0][2] = new BISHOP(1, 0, 2, whiteOnBottom);
-        board[0][3] = new QUEEN(1, 0, 3, whiteOnBottom);
-        board[0][4] = new KING(1, 0, 4, whiteOnBottom);
-        board[0][5] = new BISHOP(1, 0, 5, whiteOnBottom);
-        board[0][6] = new KNIGHT(1, 0, 6, whiteOnBottom);
-        board[0][7] = new ROOK(1, 0, 7, whiteOnBottom);
+        // Column positions for king/queen
+        int whiteQueenCol = whiteOnBottom ? 4 : 3;
+        int whiteKingCol  = whiteOnBottom ? 3 : 4;
+        int blackQueenCol = whiteOnBottom ? 4 : 3;
+        int blackKingCol  = whiteOnBottom ? 3 : 4;
+
+        // Black pieces (top side depending on orientation)
+        board[blackRow1][0] = new ROOK(blackColor, blackRow1, 0, whiteOnBottom);
+        board[blackRow1][1] = new KNIGHT(blackColor, blackRow1, 1, whiteOnBottom);
+        board[blackRow1][2] = new BISHOP(blackColor, blackRow1, 2, whiteOnBottom);
+        board[blackRow1][blackQueenCol] = new QUEEN(blackColor, blackRow1, blackQueenCol, whiteOnBottom);
+        board[blackRow1][blackKingCol]  = new KING(blackColor, blackRow1, blackKingCol, whiteOnBottom);
+        board[blackRow1][5] = new BISHOP(blackColor, blackRow1, 5, whiteOnBottom);
+        board[blackRow1][6] = new KNIGHT(blackColor, blackRow1, 6, whiteOnBottom);
+        board[blackRow1][7] = new ROOK(blackColor, blackRow1, 7, whiteOnBottom);
+
         for (int i = 0; i < 8; i++) {
-            board[1][i] = new PAWN(1, 1, i, whiteOnBottom);
+            board[blackRow2][i] = new PAWN(blackColor, blackRow2, i, whiteOnBottom);
         }
 
-        //White pieces (bottom)
-        board[7][0] = new ROOK(0, 7, 0, whiteOnBottom);
-        board[7][1] = new KNIGHT(0, 7, 1, whiteOnBottom);
-        board[7][2] = new BISHOP(0, 7, 2, whiteOnBottom);
-        board[7][3] = new QUEEN(0, 7, 3, whiteOnBottom);
-        board[7][4] = new KING(0, 7, 4, whiteOnBottom);
-        board[7][5] = new BISHOP(0, 7, 5, whiteOnBottom);
-        board[7][6] = new KNIGHT(0, 7, 6, whiteOnBottom);
-        board[7][7] = new ROOK(0, 7, 7, whiteOnBottom);
+        // White pieces (bottom side depending on orientation)
+        board[whiteRow1][0] = new ROOK(whiteColor, whiteRow1, 0, whiteOnBottom);
+        board[whiteRow1][1] = new KNIGHT(whiteColor, whiteRow1, 1, whiteOnBottom);
+        board[whiteRow1][2] = new BISHOP(whiteColor, whiteRow1, 2, whiteOnBottom);
+        board[whiteRow1][whiteQueenCol] = new QUEEN(whiteColor, whiteRow1, whiteQueenCol, whiteOnBottom);
+        board[whiteRow1][whiteKingCol]  = new KING(whiteColor, whiteRow1, whiteKingCol, whiteOnBottom);
+        board[whiteRow1][5] = new BISHOP(whiteColor, whiteRow1, 5, whiteOnBottom);
+        board[whiteRow1][6] = new KNIGHT(whiteColor, whiteRow1, 6, whiteOnBottom);
+        board[whiteRow1][7] = new ROOK(whiteColor, whiteRow1, 7, whiteOnBottom);
+
         for (int i = 0; i < 8; i++) {
-            board[6][i] = new PAWN(0, 6, i, whiteOnBottom);
+            board[whiteRow2][i] = new PAWN(whiteColor, whiteRow2, i, whiteOnBottom);
         }
-//        board[5][5] = new KNIGHT(1, 5, 5, whiteOnBottom);
     }
 
     public void displayBoard() {
