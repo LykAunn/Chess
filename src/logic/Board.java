@@ -97,16 +97,59 @@ public class Board {
         }
 
         if (isCastleMove(fromRow, fromCol, toRow, toCol)) {
-            int whichRow = currentColor == 0 ? 7 : 0;
-            if (isRightSideCastle(fromRow, fromCol, toRow, toCol)) {
-                Piece castlePiece = board[whichRow][7];
-                board[whichRow][7] = null;
-                board[whichRow][5] = castlePiece;
+            System.out.println("Current Color = " + currentColor + " WhiteOnBottom = " + whiteOnBottom);
+
+            // Determine which row the rooks are on
+            int whichRow = (currentColor == 0 && whiteOnBottom) || (currentColor == 1 && !whiteOnBottom) ? 7 : 0;
+
+            // Determine if this is kingside or queenside based on king movement direction
+            boolean isKingsideCastle;
+            if (whiteOnBottom) {
+                // Normal: kingside = moving right (positive direction)
+                isKingsideCastle = toCol > fromCol;
+            } else {
+                // Flipped: kingside = moving left (negative direction)
+                isKingsideCastle = toCol < fromCol;
+            }
+
+            if (isKingsideCastle) {
+                // KINGSIDE CASTLE
+                int rookStartCol, rookEndCol;
+
+                if (whiteOnBottom) {
+                    // Normal orientation: kingside rook at column 7, moves to column 5
+                    rookStartCol = 7;
+                    rookEndCol = 5;
+                } else {
+                    // Flipped orientation: kingside rook at column 0, moves to column 2
+                    rookStartCol = 0;
+                    rookEndCol = 2;
+                }
+
+                Piece castlePiece = board[whichRow][rookStartCol];
+                board[whichRow][rookStartCol] = null;
+                board[whichRow][rookEndCol] = castlePiece;
+                System.out.println("Moving kingside rook from col " + rookStartCol + " to col " + rookEndCol);
+
                 typeOfMove = "CASTLEKINGSIDE";
             } else {
-                Piece castlePiece = board[whichRow][0];
-                board[whichRow][0] = null;
-                board[whichRow][3] = castlePiece;
+                // QUEENSIDE CASTLE
+                int rookStartCol, rookEndCol;
+
+                if (whiteOnBottom) {
+                    // Normal orientation: queenside rook at column 0, moves to column 3
+                    rookStartCol = 0;
+                    rookEndCol = 3;
+                } else {
+                    // Flipped orientation: queenside rook at column 7, moves to column 5
+                    rookStartCol = 7;
+                    rookEndCol = 5;
+                }
+
+                Piece castlePiece = board[whichRow][rookStartCol];
+                board[whichRow][rookStartCol] = null;
+                board[whichRow][rookEndCol] = castlePiece;
+
                 typeOfMove = "CASTLEQUEENSIDE";
             }
         }
@@ -249,7 +292,7 @@ public class Board {
 
         if (originalPiece == null || originalPiece.getType() != PieceType.KING) return false;
 
-        return Math.abs(toCol - fromCol) == 2 &&
+        return (Math.abs(toCol - fromCol) == 2) &&
                 board[toRow][toCol] == null;
     }
 
@@ -356,24 +399,29 @@ public class Board {
 
     // KING CASTLING CHECKS
     private boolean canCastleKingside(int kingRow, int kingCol, int color) {
-        if (board[kingRow][kingCol + 1] != null && board[kingRow][kingCol + 2] != null) return false;
+        int direction = whiteOnBottom ? 1 : -1;
 
-        if (isAttacked(kingRow, kingCol + 1, color) ||
-                isAttacked(kingRow, kingCol + 2, color)) return false;
+        if (board[kingRow][kingCol + direction] != null && board[kingRow][kingCol + (direction * 2)] != null) return false;
 
-        Piece rook = board[kingRow][7];
+        if (isAttacked(kingRow, kingCol + direction, color) ||
+                isAttacked(kingRow, kingCol + (direction * 2), color)) return false;
+
+        int rookKingSide = whiteOnBottom ? 7 : 0;
+        Piece rook = board[kingRow][rookKingSide];
         return rook != null && rook.getType() == PieceType.ROOK && rook.getColor() == color;
     }
 
     private boolean canCastleQueenside(int kingRow, int kingCol, int playercolor) {
-        if (board[kingRow][kingCol - 1] != null &&
-                board[kingRow][kingCol - 2] != null &&
-                board[kingRow][kingCol - 3] != null) return false;
+        int direction = whiteOnBottom ? 1 : -1;
+        if (board[kingRow][kingCol - direction] != null &&
+                board[kingRow][kingCol - (direction * 2)] != null &&
+                board[kingRow][kingCol - (direction * 3)] != null) return false;
 
-        if (isAttacked(kingRow, kingCol + 1, playercolor) ||
-                isAttacked(kingRow, kingCol + 2, playercolor)) return false;
+        if (isAttacked(kingRow, kingCol + direction, playercolor) ||
+                isAttacked(kingRow, kingCol + (direction * 2), playercolor)) return false;
 
-        Piece rook = board[kingRow][0];
+    int rookQueenSide = whiteOnBottom ? 0 : 7;
+        Piece rook = board[kingRow][rookQueenSide];
         return rook != null && rook.getType() == PieceType.ROOK && rook.getColor() == playercolor;
     }
 
@@ -400,15 +448,19 @@ public class Board {
 
         if (piece.getType() == PieceType.ROOK) {
             if (piece.getColor() == 0) {  // White rooks
-                if (fromRow == 7 && fromCol == 0) {  // Queenside rook
+                int whiteBackRank = whiteOnBottom ? 7 : 0;
+
+                if (fromRow == whiteBackRank && fromCol == 0) {  // Queenside rook
                     whiteQueensideRookMoved = true;
-                } else if (fromRow == 7 && fromCol == 7) {  // Kingside rook
+                } else if (fromRow == whiteBackRank && fromCol == 7) {  // Kingside rook
                     whiteKingsideRookMoved = true;
+
                 }
             } else {  // Black rooks
-                if (fromRow == 0 && fromCol == 0) {  // Queenside rook
+                int blackBackRank = whiteOnBottom ? 0 : 7;
+                if (fromRow == blackBackRank && fromCol == 0) {  // Queenside rook
                     blackQueensideRookMoved = true;
-                } else if (fromRow == 0 && fromCol == 7) {  // Kingside rook
+                } else if (fromRow == blackBackRank && fromCol == 7) {  // Kingside rook
                     blackKingsideRookMoved = true;
                 }
             }
@@ -417,6 +469,7 @@ public class Board {
 
     public ArrayList<Move> getCastlingMoves(int kingRow, int kingCol, int playerColor) {
         ArrayList<Move> castlingMoves = new ArrayList<>();
+        int direction = whiteOnBottom ? 1 : -1;
 
         // Unable to castle in check
         if (isAttacked(kingRow, kingCol, playerColor)) {
@@ -427,8 +480,8 @@ public class Board {
 
             if (canCastleKingside(kingRow, kingCol, playerColor)) {
 
-                if (!isAttacked(kingRow, kingCol + 1, playerColor) && !isAttacked(kingRow, kingCol + 2, playerColor)) {
-                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol + 2, "CASTLERIGHT", null, PieceType.KING, playerColor));
+                if (!isAttacked(kingRow, kingCol + direction, playerColor) && !isAttacked(kingRow, kingCol + (direction * 2), playerColor)) {
+                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol + (direction * 2), "CASTLERIGHT", null, PieceType.KING, playerColor));
                     System.out.println("FOUND CASTLE RIGHT");
                 }
             }
@@ -436,10 +489,10 @@ public class Board {
         }
 
         if (!hasKingMoved(playerColor) && !hasRookMoved(playerColor, false) && canCastleQueenside(kingRow, kingCol, playerColor)) {
-            if (canCastleKingside(kingRow, kingCol, playerColor)) {
+            if (!canCastleKingside(kingRow, kingCol, playerColor)) {
 
-                if (!isAttacked(kingRow, kingCol - 1, playerColor) && !isAttacked(kingRow, kingCol - 2, playerColor)) {
-                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol - 2, "CASTLERIGHT", null, PieceType.KING, playerColor));
+                if (!isAttacked(kingRow, kingCol - direction, playerColor) && !isAttacked(kingRow, kingCol - (direction * 2), playerColor)) {
+                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol - (direction * 2), "CASTLERIGHT", null, PieceType.KING, playerColor));
                     System.out.println("FOUND CASTLE RIGHT");
                 }
             }
@@ -488,10 +541,10 @@ public class Board {
         int blackRow2 = whiteOnBottom ? 1 : 6; // pawns
 
         // Column positions for king/queen
-        int whiteQueenCol = whiteOnBottom ? 4 : 3;
-        int whiteKingCol  = whiteOnBottom ? 3 : 4;
-        int blackQueenCol = whiteOnBottom ? 4 : 3;
-        int blackKingCol  = whiteOnBottom ? 3 : 4;
+        int whiteQueenCol = whiteOnBottom ? 3 : 4;
+        int whiteKingCol  = whiteOnBottom ? 4 : 3;
+        int blackQueenCol = whiteOnBottom ? 3 : 4;
+        int blackKingCol  = whiteOnBottom ? 4 : 3;
 
         // Black pieces (top side depending on orientation)
         board[blackRow1][0] = new ROOK(blackColor, blackRow1, 0, whiteOnBottom);

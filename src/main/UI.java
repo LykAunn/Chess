@@ -112,14 +112,15 @@ public class UI {
         } else if (titleScreenState == 1) {
             g2.setColor(new Color(70, 120, 80));
             g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+            g2.setFont(g2.getFont().deriveFont(50F));
 
             String text = "1 PLAYER";
-            int x = gp.screenWidth / 2 - (gp.screenWidth / 4) - (g2.getFontMetrics().stringWidth(text) / 2);
+            int x = gp.screenWidth / 2 - (gp.screenWidth / 4)- g2.getFontMetrics().stringWidth(text);
             int y = gp.screenHeight / 2;
             buttons.add(new ButtonUI(text, x, y, g2.getFont().deriveFont(50F), g2, () -> System.exit(0)));
 
             text = "2 PLAYER";
-            x = gp.screenWidth / 2 + (gp.screenWidth / 4) ;
+            x = gp.screenWidth / 2 + (gp.screenWidth / 4) - g2.getFontMetrics().stringWidth(text)/2;
             y = gp.screenHeight / 2;
             buttons.add(new ButtonUI(text, x, y, g2.getFont().deriveFont(50F), g2, () -> {titleScreenState = 2; clearButton();}));
         } else if (titleScreenState == 2) {

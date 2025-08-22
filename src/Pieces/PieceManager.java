@@ -90,7 +90,7 @@ public class PieceManager {
     public void renderDraggedPiece(Graphics2D g, Piece piece, int mouseX, int mouseY) {
         if (piece == null) return;
 
-        String color = (piece.color == 1) ? "white" : "black";
+        String color = (piece.color == 1) ? "black" : "white";
         String key = color + "_" + piece.getType().name().toLowerCase();
         BufferedImage image = images.get(key);
 
