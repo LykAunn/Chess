@@ -78,8 +78,8 @@ public class PieceManager {
                     BufferedImage image = images.get(key);
 
                     if (image != null) {
-                        int x = col * gp.tileSize;
-                        int y = row * gp.tileSize;
+                        int x = (col * gp.tileSize) + gp.xShift;
+                        int y = (row * gp.tileSize) + gp.yShift;
                         g.drawImage(image, x + pieceShift, y + pieceShift, pieceSize , pieceSize, null);
                     }
                 }

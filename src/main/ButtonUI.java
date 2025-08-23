@@ -20,11 +20,15 @@ public class ButtonUI {
 
     public void draw(Graphics2D g2) {
         g2.setFont(font);
-        g2.setColor(Color.blue);
 
-        g2.fillRect(bounds.x - 10, bounds.y + 5, bounds.width + 20, bounds.height + 8);
+        // Shadow
+        g2.setColor(Color.black);
+        g2.fillRect(bounds.x - 5, bounds.y + 10, bounds.width + 20, bounds.height + 8);
 
         g2.setColor(Color.white);
+        g2.fillRect(bounds.x - 10, bounds.y + 5, bounds.width + 20, bounds.height + 8);
+
+        g2.setColor(Color.black);
         g2.drawString(text, bounds.x, bounds.y + bounds.height);
     }
 

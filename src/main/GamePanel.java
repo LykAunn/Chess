@@ -18,11 +18,21 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     // Tile Settings
     public int originalTileSize = 20;
     public int scale = 5;
+    public int tileSize = originalTileSize * scale;
+    public int boardWidth = tileSize * 8;
+    public int boardHeight = tileSize * 8;
+    public int totalBoardWidth = boardWidth + 40; // Board with the border around
+    public int totalBoardHeight = boardHeight + tileSize; // Board with the border around
+    public int xShift = 20;
+    public int yShift = tileSize / 2;
+
+    // Side Menu size
+    public final int menuWidth = tileSize * 8;
+    public int menuStartX = totalBoardWidth;
 
     // Scaling
-    public int tileSize = originalTileSize * scale;
-    public int screenWidth = tileSize * 8;
-    public int screenHeight = tileSize * 8;
+    public int screenWidth = totalBoardWidth + menuWidth;
+    public int screenHeight = totalBoardHeight;
 
     // UI State
     private int selectedRow = -1, selectedCol = -1;
@@ -43,6 +53,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     private final TileManager tileManager;
     final PieceManager pieceManager;
     private final UI ui;
+    private final SideMenu sideMenu;
     Thread gameThread;
     final int fps = 60;
 
@@ -60,6 +71,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         tileManager = new TileManager(this);
         pieceManager = new PieceManager(this);
         ui = new UI(this);
+        sideMenu = new SideMenu(this);
         tileManager.getTileImage();
 
         Mouse mouse = new Mouse(this);
@@ -101,9 +113,17 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         System.out.println("Turn changed: " + currentColor);
     }
 
+    public void onPieceCaptured(Piece piece) {
+        if (piece.getColor() == 1) {
+            sideMenu.addWhiteCapturedPiece(piece.getType());
+        } else if (piece.getColor() == 0) {
+            sideMenu.addBlackCapturedPiece(piece.getType());
+        }
+    }
+
     public void handleClick(int mouseX, int mouseY) {
-        int clickedCol = mouseX / tileSize;
-        int clickedRow = mouseY / tileSize;
+        int clickedCol = (mouseX - xShift) / tileSize;
+        int clickedRow = (mouseY - yShift) / tileSize;
 
         if (!isValidSquare(clickedRow, clickedCol)) return;
 
@@ -134,8 +154,8 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     }
 
     public void handleMousePressed(int mouseX, int mouseY) {
-        int col = mouseX / tileSize;
-        int row = mouseY / tileSize;
+        int col = (mouseX - xShift) / tileSize;
+        int row = (mouseY - yShift) / tileSize;
 
         if (isValidSquare(row, col)) {
             Piece piece = gameBoard.getPiece(row, col);
@@ -171,8 +191,8 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
 
     public void handleDragEnd(int x, int y) {
         if (isDragging) {
-            int col = x / tileSize;
-            int row = y / tileSize;
+            int col = (x - xShift) / tileSize;
+            int row = (y - yShift)/ tileSize;
 
             if (isValidSquare(row, col)) {
                 gameBoard.executeMove(dragSourceRow, dragSourceCol, row, col);
@@ -239,6 +259,11 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         if (gameBoard.getGameState() == TITLE) {
             ui.draw(g2d);
         } else {
+
+            // Wrap around board
+            g2d.setColor(Color.DARK_GRAY);
+            g2d.fillRect(0, 0, totalBoardWidth , totalBoardHeight);
+
             // TILE
             tileManager.render(g2d, gameBoard);
             pieceManager.renderPieces(g2d, gameBoard);
@@ -250,6 +275,9 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
             if (isDragging && draggedPiece != null) {
                 pieceManager.renderDraggedPiece(g2d, draggedPiece, mouseX, mouseY);
             }
+
+            // Side Menu
+            sideMenu.draw(g2d);
         }
 
 

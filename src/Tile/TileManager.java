@@ -51,8 +51,8 @@ public class TileManager {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
 
-                int x = col * panel.tileSize;
-                int y = row * panel.tileSize;
+                int x = (col * panel.tileSize) + panel.xShift;
+                int y = (row * panel.tileSize) + panel.yShift;
                 int tileIndex = (row + col) % 2 == 0 ? 1 : 0;
 
                 if (panel.isSelected(row, col)) {
@@ -71,8 +71,8 @@ public class TileManager {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
 
-                int x = col * panel.tileSize;
-                int y = row * panel.tileSize;
+                int x = (col * panel.tileSize) + panel.xShift;
+                int y = (row * panel.tileSize) + panel.yShift;
 
                 if (panel.isPossibleMove(row, col)) {
                     if (Board.board[row][col] != null) {

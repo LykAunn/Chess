@@ -83,15 +83,12 @@ public class Board {
         Piece piece = board[fromRow][fromCol];
         Piece capturedPiece = board[toRow][toCol];
 
-//        if (piece != null && piece.getType() ==  PieceType.PAWN) {
-//            ArrayList<int[]> test = piece.getPawnAttacks(board);
-//        }
-
         String typeOfMove = null;
 
         //En Passant
         if (isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
             capturedPiece = board[fromRow][toCol];
+            observer.onPieceCaptured(capturedPiece);
             board[fromRow][toCol] = null;
             typeOfMove = "ENPASSANT";
         }
@@ -164,6 +161,9 @@ public class Board {
         PieceType capturedType = capturedPiece == null ? null : capturedPiece.getType();
         lastMove = new Move(fromRow, fromCol, toRow, toCol, typeOfMove, capturedType, piece.getType(), currentColor);
         moveHistory.add(lastMove);
+        if (capturedType != null) {
+            observer.onPieceCaptured(capturedPiece);
+        }
 
         // Update castling booleans
         updateCastlingFlags(piece, fromRow, fromCol);

@@ -1,6 +1,7 @@
 package logic;
 
 import Pieces.Move;
+import Pieces.Piece;
 
 import java.util.ArrayList;
 
@@ -10,5 +11,6 @@ public interface GameObserver {
     void onSelectionCleared();
     void onGameStateChanged(GameState newState);
     void onTurnChanged(int currentPlayer);
+    void onPieceCaptured(Piece piece);
 
 }
