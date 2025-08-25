@@ -28,6 +28,10 @@ public class SideMenu {
         this.gp = gp;
         pieceManager = new PieceManager(gp);
         initializeFonts();
+        pieceManager.loadSpriteSheet();
+        pieceManager.extractSpitePieces();
+
+        pieceManager.debugCapturedPieces();
     }
 
     public void initializeFonts() {
@@ -73,10 +77,12 @@ public class SideMenu {
 
         //Title
         g2.drawString(side, x, y);
+        y = gp.yShift + gp.boardHeight + startY;
+        g2.drawString(otherSide, x, y);
         y = gp.yShift / 2;
 
         Integer[] arrayCaptured = calculateNoOfCapturedPieces(whiteCaptured,blackCaptured);
-        // White captured pieces (by black)
+        // Captured Pieces
         pieceManager.renderCapturedPieces(g2, arrayCaptured, gp.getwhiteBottom(), y);
 
     }

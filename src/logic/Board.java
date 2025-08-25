@@ -36,14 +36,12 @@ public class Board {
     }
 
     public void playSE(int i) {
-
-        sound.setFile(i);
-        sound.play();
+        sound.play(i);
     }
 
     public void playRandomSE(int i, int j) {
 
-        double random =Math.random();
+        double random = Math.random();
         if (random < 0.5) {
             playSE(i);
         } else {
@@ -126,7 +124,6 @@ public class Board {
                 Piece castlePiece = board[whichRow][rookStartCol];
                 board[whichRow][rookStartCol] = null;
                 board[whichRow][rookEndCol] = castlePiece;
-                System.out.println("Moving kingside rook from col " + rookStartCol + " to col " + rookEndCol);
 
                 typeOfMove = "CASTLEKINGSIDE";
             } else {
@@ -174,7 +171,7 @@ public class Board {
         // Check game state for new current player
         if (isInCheck(currentColor)) {
             System.out.println("CHECK ON " + (currentColor == 0 ? "WHITE" : "BLACK") + " move");
-            if (checkmate(currentColor == 0 ? 1 : 0)) {
+            if (checkmate(currentColor)) {
                 gameState = GameState.CHECKMATE;
                 playSE(9);
             } else {
@@ -351,9 +348,8 @@ public class Board {
         int opponentColor = color == 0 ? 1 : 0;
 
         // Must be in check
-        if (isInCheck(color)) {
+        if (!isInCheck(color)) {
             return false;
-
         }
 
         // Check for legal moves

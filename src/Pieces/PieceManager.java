@@ -42,10 +42,6 @@ public class PieceManager {
         pieceShift = (int) (gp.tileSize * 0.05);
 
         getImages();
-        loadSpriteSheet();
-        extractSpitePieces();
-
-        debugCapturedPieces();
     }
 
     static {
@@ -335,7 +331,7 @@ public class PieceManager {
         spritesForCapturedPieces.put("1_black_knight", extractSprite(190, step, 190 + onePieceXStep , step + pieceYStep));
         spritesForCapturedPieces.put("2_black_rook", extractSprite(241, 0, 241 + twoPieceXStep , pieceYStep));
         spritesForCapturedPieces.put("1_black_rook", extractSprite(241, step, 241 + onePieceXStep , step + pieceYStep));
-        spritesForCapturedPieces.put("1_black_queen", extractSprite(290, 0, 290 + onePieceXStep , pieceYStep));
+        spritesForCapturedPieces.put("1_black_queen", extractSprite(290, 0, 290 + 33 , pieceYStep));
 
         spritesForCapturedPieces.put("8_white_pawn", extractSprite(360, 5,  360 + 123 , 35));
         spritesForCapturedPieces.put("7_white_pawn", extractSprite(360, 5 + step, 360 + 109 , 5 + step + 31));
@@ -351,11 +347,11 @@ public class PieceManager {
         spritesForCapturedPieces.put("1_white_knight", extractSprite(190 + 360, step, 190 + 360 + onePieceXStep , step + pieceYStep));
         spritesForCapturedPieces.put("2_white_rook", extractSprite(241 + 360, 0, 241 + 360 + twoPieceXStep , pieceYStep));
         spritesForCapturedPieces.put("1_white_rook", extractSprite(241 + 360, step, 241 + 360 + onePieceXStep , step + pieceYStep));
-        spritesForCapturedPieces.put("1_white_queen", extractSprite(290 + 360, 0, 290 + 360 + onePieceXStep , pieceYStep));
+        spritesForCapturedPieces.put("1_white_queen", extractSprite(290 + 360, 0, 290 + 360 + 33 , pieceYStep));
 
     }
 
-    private void loadSpriteSheet() {
+    public void loadSpriteSheet() {
         try  {
             spriteSheet = ImageIO.read(Objects.requireNonNull(PieceManager.class.getClassLoader().getResourceAsStream("pieces/captured-pieces.png")));
         }
