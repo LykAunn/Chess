@@ -23,12 +23,13 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     public int boardHeight = tileSize * 8;
     public int totalBoardWidth = boardWidth + 40; // Board with the border around
     public int totalBoardHeight = boardHeight + tileSize; // Board with the border around
-    public int xShift = 20;
-    public int yShift = tileSize / 2;
+
 
     // Side Menu size
     public final int menuWidth = tileSize * 8;
     public int menuStartX = totalBoardWidth;
+    public int xShift = 20;
+    public int yShift = tileSize / 2;
 
     // Scaling
     public int screenWidth = totalBoardWidth + menuWidth;
@@ -77,6 +78,10 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         Mouse mouse = new Mouse(this);
         addMouseListener(mouse);
         addMouseMotionListener(mouse);
+    }
+
+    public boolean getwhiteBottom() {
+        return gameBoard.whiteOnBottom;
     }
 
     //Game Observer Implementation
