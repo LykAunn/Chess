@@ -14,6 +14,7 @@ public class Board {
     private GameState gameState = GameState.TITLE;
     public boolean whiteOnBottom;
     Sound sound = new Sound();
+    public boolean popUpShown = false;
 
     // Flags to track if pieces have moved
     private boolean whiteKingMoved = false;
@@ -28,7 +29,6 @@ public class Board {
     public Board() {
         board = new Piece[8][8];
         moveHistory = new ArrayList<>();
-        playSE(0);
     }
 
     public void startGame() {
@@ -72,10 +72,10 @@ public class Board {
         }
     }
 
-    public boolean executeMove(int fromRow, int fromCol, int toRow, int toCol) {
+    public void executeMove(int fromRow, int fromCol, int toRow, int toCol) {
 
         if (!isValidMove(fromRow, fromCol, toRow, toCol)) {
-            return false;
+            return;
         }
 
         Piece piece = board[fromRow][fromCol];
@@ -154,6 +154,11 @@ public class Board {
         piece.row = toRow;
         piece.col = toCol;
 
+        if (pawnAbleToPromote(toRow, toCol, currentColor)) {
+            observer.onPawnPromotion(toRow, toCol, currentColor);
+            return;
+        }
+
         //Record move into Move
         PieceType capturedType = capturedPiece == null ? null : capturedPiece.getType();
         lastMove = new Move(fromRow, fromCol, toRow, toCol, typeOfMove, capturedType, piece.getType(), currentColor);
@@ -202,7 +207,6 @@ public class Board {
             displayBoard();
         }
 
-        return true;
     }
 
     public void clearSelection() {
@@ -211,6 +215,23 @@ public class Board {
         }
     }
 
+    public void promotePawn(int row, int col, PieceType selectedPiece, int color) {
+        Piece newPiece;
+        if (selectedPiece == PieceType.BISHOP) {
+            newPiece = new BISHOP(color, row, col, whiteOnBottom);
+        } else if (selectedPiece == PieceType.QUEEN) {
+            newPiece = new QUEEN(color, row, col, whiteOnBottom);
+        } else if (selectedPiece == PieceType.ROOK) {
+            newPiece = new ROOK(color, row, col, whiteOnBottom);
+        } else {
+            newPiece = new KNIGHT(color, row, col, whiteOnBottom);
+        }
+
+        board[row][col] = newPiece;
+        popUpShown = false;
+        currentColor = currentColor == 0 ? 1 : 0;
+
+    }
 
     //Game logic
     public boolean isValidMove(int fromRow, int fromCol, int toRow, int toCol) {
@@ -295,6 +316,14 @@ public class Board {
 
     public boolean isRightSideCastle(int fromRow, int fromCol, int toRow, int toCol) {
         return isCastleMove(fromRow, fromCol, toRow, toCol) && (toCol - fromCol) == 2;
+    }
+
+    public boolean pawnAbleToPromote(int row, int col, int colorToPromote) {
+        if (board[row][col] == null) return false;
+        if (board[row][col].getColor() != colorToPromote) return false;
+        int rowToPromote = (colorToPromote == 0 && whiteOnBottom) || (colorToPromote == 1 && !whiteOnBottom) ? 0 : 7;
+
+        return board[row][col].getType() == PieceType.PAWN && row == rowToPromote;
     }
 
     // Check detection
@@ -569,6 +598,8 @@ public class Board {
         for (int i = 0; i < 8; i++) {
             board[whiteRow2][i] = new PAWN(whiteColor, whiteRow2, i, whiteOnBottom);
         }
+
+        playSE(0);
     }
 
     public void displayBoard() {

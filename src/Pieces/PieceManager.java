@@ -7,7 +7,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -89,7 +88,7 @@ public class PieceManager {
         try  {
             piece1 = ImageIO.read(getClass().getClassLoader().getResourceAsStream("pieces/WhiteKing.png"));
             piece2 = ImageIO.read(getClass().getClassLoader().getResourceAsStream("pieces/BlackPawn.png"));
-            piece3 = ImageIO.read(getClass().getClassLoader().getResourceAsStream("pieces/wHITEBishop.png"));
+            piece3 = ImageIO.read(getClass().getClassLoader().getResourceAsStream("pieces/WhiteBishop.png"));
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -145,16 +144,6 @@ public class PieceManager {
             return PAWN_WIDTHS[pawnCount];
         }
         return PAWN_WIDTHS[1]; // fallback to 1 piece width
-    }
-
-    private int getOtherWidth(int count) {
-        if (count == 1) {
-            return onePieceXStep;
-        } else if (count == 2) {
-            return twoPieceXStep;
-        } else {
-            return 0;
-        }
     }
 
     public void renderCapturedPieces(Graphics2D g, Integer[] noOfCapturedPieces , boolean whiteOnBottom, int startY) {
@@ -358,5 +347,9 @@ public class PieceManager {
         catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public Map<String, BufferedImage> getPromotionImages() {
+        return images;
     }
 }

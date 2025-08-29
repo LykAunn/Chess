@@ -5,6 +5,6 @@ public enum GameState {
     CHECK,
     CHECKMATE,
     STALEMATE,
-    DRAW,
-    TITLE
+    TITLE,
+    POPUPMENU
 }

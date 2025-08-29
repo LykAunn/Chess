@@ -12,5 +12,6 @@ public interface GameObserver {
     void onGameStateChanged(GameState newState);
     void onTurnChanged(int currentPlayer);
     void onPieceCaptured(Piece piece);
+    void onPawnPromotion(int row, int col, int color);
 
 }

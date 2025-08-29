@@ -55,6 +55,8 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     final PieceManager pieceManager;
     private final UI ui;
     private final SideMenu sideMenu;
+    private PawnPromotionMenu pawnPromotionMenu;
+    private ButtonUI buttonUI;
     Thread gameThread;
     final int fps = 60;
 
@@ -74,6 +76,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         ui = new UI(this);
         sideMenu = new SideMenu(this);
         tileManager.getTileImage();
+        pawnPromotionMenu = new PawnPromotionMenu(this);
 
         Mouse mouse = new Mouse(this);
         addMouseListener(mouse);
@@ -126,9 +129,26 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         }
     }
 
+    public void onPawnPromotion(int row, int col, int color) {
+        gameBoard.popUpShown = true;
+        pawnPromotionMenu.showPromotionMenu(row, col, color, (selectedPiece -> {
+            gameBoard.promotePawn(row, col, selectedPiece, color);
+            repaint();
+        }));
+        repaint();
+    }
+
     public void handleClick(int mouseX, int mouseY) {
         int clickedCol = (mouseX - xShift) / tileSize;
         int clickedRow = (mouseY - yShift) / tileSize;
+
+        // Check promotion menu first
+        if (pawnPromotionMenu.isVisible()) {
+            if (pawnPromotionMenu.handleClick(mouseX, mouseY)) {
+                repaint();
+                return; // Don't process other clicks when menu is open
+            }
+        }
 
         if (!isValidSquare(clickedRow, clickedCol)) return;
 
@@ -152,7 +172,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
 
         } else {
             // Select the piece
-            if (clickedPiece != null && clickedPiece.getColor() == gameBoard.getCurrentColor()) {
+            if (clickedPiece != null && clickedPiece.getColor() == gameBoard.getCurrentColor() && !gameBoard.popUpShown) {
                 gameBoard.selectPiece(clickedRow, clickedCol);
             }
         }
@@ -164,7 +184,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
 
         if (isValidSquare(row, col)) {
             Piece piece = gameBoard.getPiece(row, col);
-            if (piece != null && piece.getColor() == gameBoard.getCurrentColor()) {
+            if (piece != null && piece.getColor() == gameBoard.getCurrentColor() && !gameBoard.popUpShown) {
 
                 // Store potential drag info
                 dragSourceRow = row;
@@ -283,6 +303,9 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
 
             // Side Menu
             sideMenu.draw(g2d);
+
+            // Pop Up Menu
+            pawnPromotionMenu.draw(g2d);
         }
 
 
