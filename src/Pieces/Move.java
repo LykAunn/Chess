@@ -44,4 +44,8 @@ public class Move {
 
     public int getPieceColor() { return pieceColor; }
 
+    public String getTypeOfMove() { return typeOfMove; }
+
+    public PieceType getPieceCaptured() { return pieceCaptured; }
+
 }

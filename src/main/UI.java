@@ -16,7 +16,6 @@ public class UI {
     Font maruMonica, purisaB;
     ArrayList<ButtonUI> buttons = new ArrayList<>();
     public int titleScreenState = 0; // 0: First Menu, 1: 1/2 Player selection, 2: Play which side
-    int colOfPopUpMenu, rowOfPopUpMenu, colorOfPopUpMenu;
 
     public UI(GamePanel gp) {
         this.gp = gp;
@@ -62,9 +61,6 @@ public class UI {
             drawTitleScreen();
         }
 
-        if (gp.getGameState() == POPUPMENU) {
-            drawPopUpMenu();
-        }
     }
 
     public void drawTitleScreen() {
@@ -150,17 +146,6 @@ public class UI {
             button.draw(g2);
         }
 
-    }
-
-    public void setPopUpMenu(int row, int col, int color) {
-        colOfPopUpMenu = gp.xShift + (col * gp.tileSize);
-        rowOfPopUpMenu = row == 0 ? gp.yShift : gp.yShift + (gp.tileSize * 4);
-        colorOfPopUpMenu = color;
-    }
-
-    public void drawPopUpMenu() {
-        g2.setColor(Color.DARK_GRAY);
-        g2.fillRect(colOfPopUpMenu, rowOfPopUpMenu, gp.tileSize, gp.tileSize * 4);
     }
 
     public int getXforCenteredText(String text) {
