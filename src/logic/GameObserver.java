@@ -13,5 +13,6 @@ public interface GameObserver {
     void onTurnChanged(int currentPlayer);
     void onPieceCaptured(Piece piece);
     void onPawnPromotion(int row, int col, int color);
+    void onHistoryAdded(Move move);
 
 }

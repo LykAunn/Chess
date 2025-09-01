@@ -3,6 +3,7 @@ package logic;
 import Pieces.Move;
 import Pieces.Piece;
 import Pieces.PieceType;
+import main.SideMenu;
 
 import java.util.ArrayList;
 
@@ -13,25 +14,30 @@ public class MoveHistory {
 
     public MoveHistory(boolean whiteOnBottom) {
         this.whiteOnBottom = whiteOnBottom;
+        history = new ArrayList<>();
+        historyStrings = new ArrayList<>();
     }
 
     public void addMove(Move move) {
         history.add(move);
+        String moveString = toAlgebraicString(move);
+        historyStrings.add(moveString);
+        SideMenu.addMoveToHistory(moveString);
     }
 
     public char getPieceSymbol(PieceType piece) {
         switch (piece) {
-            case PieceType.PAWN:
+            case PAWN:
                 return '\0';
-            case PieceType.KNIGHT:
+            case KNIGHT:
                 return 'N';
-            case PieceType.BISHOP:
+            case BISHOP:
                 return 'B';
-            case PieceType.ROOK:
+            case ROOK:
                 return 'R';
-            case PieceType.QUEEN:
+            case QUEEN:
                 return 'Q';
-            case PieceType.KING:
+            case KING:
                 return 'K';
             default:
                 return '?';
@@ -47,12 +53,13 @@ public class MoveHistory {
         if (whiteOnBottom) {
             rank = 8 - row;
         } else {
-            rank = row;
+            rank = row + 1;
         }
-        return getFile(col) + Integer.toString(rank);
+        return String.valueOf(getFile(col)) + rank;
     }
 
     public char promotionSymbol(String typeOfMove) {
+        if (typeOfMove == null) return '?';
         switch (typeOfMove) {
             case "PROMOTEQUEEN":
                 return 'Q';
@@ -75,34 +82,29 @@ public class MoveHistory {
         }
 
         // Castling Checks
-        if (whiteOnBottom) {
-            if (move.getEndCol() - move.getStartCol() == 2) {
+        if (move.getPieceMoved() == PieceType.KING) {
+            if (move.getTypeOfMove() == "CASTLEKINGSIDE") {
                 return "o-o";
-            } else if (move.getEndCol() - move.getStartCol() == -2) {
+            } else if (move.getTypeOfMove() == "CASTLEQUEENSIDE") {
                 return "o-o-o";
-            }
-        } else {
-            if (move.getEndRow() - move.getStartRow() == 2) {
-                return "o-o-o";
-            } else if (move.getEndRow() - move.getStartRow() == -2) {
-                return "o-o";
             }
         }
 
         // Pawn promotion check
-        if ((move.getEndRow() == 8 && move.getStartRow() == 7) || (move.getEndRow() == 0 && move.getStartRow() == 1)) {
-            return getFile(move.getStartCol()) + captured + squareName(move.getEndCol(), move.getEndRow()) + "=" + promotionSymbol(move.getTypeOfMove());
+        if ((move.getEndRow() == 7 && move.getStartRow() == 6) || (move.getEndRow() == 0 && move.getStartRow() == 1)) {
+            return String.valueOf(getFile(move.getStartCol()))
+                    + captured + squareName(move.getEndCol(), move.getEndRow()) + "=" + promotionSymbol(move.getTypeOfMove());
         }
 
         // Normal piece
         if (move.getPieceMoved() == PieceType.PAWN) {
             if (move.getPieceCaptured() != null) {
-                return getFile(move.getStartCol()) + captured + squareName(move.getEndCol(), move.getEndRow());
+                return String.valueOf(getFile(move.getStartCol())) + captured + squareName(move.getEndCol(), move.getEndRow());
             } else {
                 return squareName(move.getEndCol(), move.getEndRow());
             }
         } else {
-            return getPieceSymbol(move.getPieceMoved()) + captured + squareName(move.getEndCol(), move.getEndRow());
+            return String.valueOf(getPieceSymbol(move.getPieceMoved())) + captured + squareName(move.getEndCol(), move.getEndRow());
         }
     }
 }

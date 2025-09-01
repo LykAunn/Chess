@@ -25,6 +25,7 @@ public class Board {
     private boolean blackQueensideRookMoved = false;
     private boolean whiteChecked = false;
     private boolean blackChecked = false;
+    private String promotedPiece = "";
 
     public Board() {
         board = new Piece[8][8];
@@ -153,14 +154,16 @@ public class Board {
         board[toRow][toCol] = piece;
         piece.row = toRow;
         piece.col = toCol;
+        PieceType capturedType = capturedPiece == null ? null : capturedPiece.getType();
 
         if (pawnAbleToPromote(toRow, toCol, currentColor)) {
             observer.onPawnPromotion(toRow, toCol, currentColor);
+            lastMove = new Move(fromRow, fromCol, toRow, toCol, " ", capturedType, piece.getType(), currentColor);
             return;
         }
 
         //Record move into Move
-        PieceType capturedType = capturedPiece == null ? null : capturedPiece.getType();
+
         lastMove = new Move(fromRow, fromCol, toRow, toCol, typeOfMove, capturedType, piece.getType(), currentColor);
         moveHistory.add(lastMove);
         if (capturedType != null) {
@@ -204,6 +207,7 @@ public class Board {
             observer.onMoveExecuted(lastMove);
             observer.onTurnChanged(currentColor);
             observer.onGameStateChanged(gameState);
+            observer.onHistoryAdded(lastMove);
             displayBoard();
         }
 
@@ -219,20 +223,26 @@ public class Board {
         Piece newPiece;
         if (selectedPiece == PieceType.BISHOP) {
             newPiece = new BISHOP(color, row, col, whiteOnBottom);
+            promotedPiece = "PROMOTEBISHOP";
         } else if (selectedPiece == PieceType.QUEEN) {
             newPiece = new QUEEN(color, row, col, whiteOnBottom);
+            promotedPiece = "PROMOTEQUEEN";
         } else if (selectedPiece == PieceType.ROOK) {
             newPiece = new ROOK(color, row, col, whiteOnBottom);
+            promotedPiece = "PROMOTEROOK";
         } else {
             newPiece = new KNIGHT(color, row, col, whiteOnBottom);
+            promotedPiece = "PROMOTEKNIGHT";
         }
+
+        lastMove = new Move(lastMove.getStartRow(), lastMove.getStartCol(), row, col, promotedPiece, lastMove.getPieceCaptured(), lastMove.getPieceMoved(), lastMove.getPieceColor());
+        observer.onHistoryAdded(lastMove);
 
         board[row][col] = newPiece;
         popUpShown = false;
         currentColor = currentColor == 0 ? 1 : 0;
 
     }
-
     //Game logic
     public boolean isValidMove(int fromRow, int fromCol, int toRow, int toCol) {
         Piece piece = getPiece(fromRow, fromCol);

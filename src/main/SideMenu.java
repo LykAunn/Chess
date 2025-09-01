@@ -14,6 +14,9 @@ public class SideMenu {
     private Graphics2D g2;
     private Font titleFont, textFont, smallFont;
     private final PieceManager pieceManager;
+    private static String[] moveHistory;
+    private static int moveCounter;
+    private static int numberShift = 0;
 
     // Captured Pieces
     private final ArrayList<PieceType> whiteCaptured = new ArrayList<>();
@@ -27,6 +30,10 @@ public class SideMenu {
     public SideMenu(GamePanel gp) {
         this.gp = gp;
         pieceManager = new PieceManager(gp);
+        moveHistory = new String[16];
+
+
+        moveCounter = 0;
         initializeFonts();
         pieceManager.loadSpriteSheet();
         pieceManager.extractSpitePieces();
@@ -58,10 +65,47 @@ public class SideMenu {
         // Menu Background
         g2.setColor(Color.GRAY);
         g2.fillRect(gp.menuStartX, 0, gp.menuWidth, gp.screenHeight);
+        drawMoveHistory(g2, gp.menuStartX, y);
+
 
         // Captured Pieces
         drawCapturedPieces(g2, y);
 
+    }
+
+    public void drawMoveHistory(Graphics2D g2, int x, int y) {
+        g2.setFont(g2.getFont().deriveFont(Font.PLAIN, 30F));
+        g2.setColor(Color.BLACK);
+        FontMetrics fm = g2.getFontMetrics();
+
+        int yToDraw = y;
+        int lineHeight = fm.getHeight();
+
+        // assume moveHistory is like: ["e4", "e5", "Nf3", "Nc6", ...]
+        for (int i = 0; i < moveHistory.length; i += 2) {
+            if (moveHistory[i] == null) return;
+            int moveNumber = (i / 2) + 1 + numberShift;
+
+            // Start X each line
+            int xToDraw = x;
+
+            // Draw move number
+            String numString = moveNumber + ".";
+            g2.drawString(numString, xToDraw, yToDraw);
+            xToDraw += fm.stringWidth(numString + "  ");
+
+            // Draw White’s move (always exists)
+            g2.drawString(moveHistory[i], xToDraw, yToDraw);
+            xToDraw += fm.stringWidth(moveHistory[i] + "  ");
+
+            // Draw Black’s move (only if it exists)
+            if (i + 1 < moveHistory.length && moveHistory[i + 1] != null) {
+                g2.drawString(moveHistory[i + 1], xToDraw, yToDraw);
+            }
+
+            // Move to next line
+            yToDraw += lineHeight;
+        }
     }
 
     public void drawCapturedPieces(Graphics2D g2, int startY) {
@@ -147,5 +191,27 @@ public class SideMenu {
         }
 
         return new Integer[]{blackPawns, blackBishop, blackKnight, blackRook, blackQueen, whitePawns, whiteBishop, whiteKnight, whiteRook, whiteQueen};
+    }
+
+    public static void addMoveToHistory(String move) {
+        if (moveCounter < moveHistory.length) {
+            moveHistory[moveCounter] = move;
+            moveCounter++;
+        } else {
+            shiftList();
+            numberShift++;
+            moveCounter = moveCounter -2;
+            moveHistory[moveCounter] = move;
+
+        }
+    }
+
+    public static void shiftList() {
+        for (int i = 0; i < moveHistory.length - 2; i++) {
+            moveHistory[i] = moveHistory[i + 2];
+        }
+
+        moveHistory[moveHistory.length - 2] = null;
+        moveHistory[moveHistory.length - 1] = null;
     }
 }

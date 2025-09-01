@@ -5,6 +5,7 @@ import Tile.TileManager;
 import logic.Board;
 import logic.GameObserver;
 import logic.GameState;
+import logic.MoveHistory;
 
 import javax.sound.midi.SysexMessage;
 import javax.swing.*;
@@ -56,7 +57,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     private final UI ui;
     private final SideMenu sideMenu;
     private PawnPromotionMenu pawnPromotionMenu;
-    private ButtonUI buttonUI;
+    private MoveHistory moveHistory;
     Thread gameThread;
     final int fps = 60;
 
@@ -77,6 +78,7 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
         sideMenu = new SideMenu(this);
         tileManager.getTileImage();
         pawnPromotionMenu = new PawnPromotionMenu(this);
+        moveHistory = new MoveHistory(getwhiteBottom());
 
         Mouse mouse = new Mouse(this);
         addMouseListener(mouse);
@@ -136,6 +138,10 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
             repaint();
         }));
         repaint();
+    }
+
+    public void onHistoryAdded(Move move) {
+        moveHistory.addMove(move);
     }
 
     public void handleClick(int mouseX, int mouseY) {
