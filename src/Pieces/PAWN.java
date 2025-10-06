@@ -1,14 +1,13 @@
 package Pieces;
 
-import main.GamePanel;
+import logic.Board;
 
 import java.util.ArrayList;
 
 public class PAWN extends Piece {
 
-    public PAWN(int color, int row, int col, boolean whiteOnBottom, GamePanel gamePanel) {
+    public PAWN(int color, int row, int col, boolean whiteOnBottom) {
         super(color, PieceType.PAWN, row, col, whiteOnBottom);
-        this.gamePanel = gamePanel;
     }
 
     public ArrayList<Move> getPossibleMoves(Piece[][] board) {
@@ -18,29 +17,29 @@ public class PAWN extends Piece {
 
         //One Square forward
         if (isInBound(board, row + direction, col) && isNotObstructed(board, row + direction, col)) {
-            moves.add(new Move(row, col, row + direction, col, null, null, null));
+            moves.add(new Move(row, col, row + direction, col, null, null, null, getColor()));
         }
 
         //Two Squares forward
-        if (isInBound(board, row + (direction * 2), col) && isNotObstructed(board, row + (direction * 2), col)) {
-            moves.add(new Move(row, col, row + (direction * 2), col, null, null, null));
+        if (isInBound(board, row + (direction * 2), col) && isNotObstructed(board, row + (direction * 2), col) && (row == 1 || row == 6)) {
+            moves.add(new Move(row, col, row + (direction * 2), col, null, null, null, getColor()));
         }
 
         //Diagonal
         if (isInBound(board, row + direction, col + 1) && targetCheck(board, row + direction, col + 1, color)) {
-            moves.add(new Move(row, col, row + direction, col + 1, null, null, null));
+            moves.add(new Move(row, col, row + direction, col + 1, null, null, null, getColor()));
         }
         if (isInBound(board, row + direction, col - 1) && targetCheck(board, row + direction, col - 1, color)) {
-            moves.add(new Move(row, col, row + direction, col - 1, null, null, null));
+            moves.add(new Move(row, col, row + direction, col - 1, null, null, null, getColor()));
         }
 
         //En Passant Check
         if (enPassantCheck(board, row + direction, col + 1)) {
-            moves.add(new Move(row, col, row + direction, col + 1, "EnPassant", null, null)); //Right
+            moves.add(new Move(row, col, row + direction, col + 1, "EnPassant", null, null, getColor())); //Right
         }
 
         if (enPassantCheck(board, row + direction, col - 1)) {
-            moves.add(new Move(row, col, row + direction, col - 1, "EnPassant", null, null)); //Left
+            moves.add(new Move(row, col, row + direction, col - 1, "EnPassant", null, null, getColor())); //Left
         }
 
         return moves;
@@ -74,9 +73,13 @@ public class PAWN extends Piece {
             return false;
         }
 
-        // Pawn must be at correct rank
-        if ((color == 0 && row != 3) || (color == 1 && row != 4)) {
-            return false;
+        // Pawn must be at correct rank for en passant
+        if (color == 0) { // White pawn
+            int enPassantRow = whiteOnBottom ? 3 : 4;
+            if (row != enPassantRow) return false;
+        } else { // Black pawn
+            int enPassantRow = whiteOnBottom ? 4 : 3;
+            if (row != enPassantRow) return false;
         }
 
         // Adjacent square (same row as your pawn) must have enemy pawn
@@ -89,7 +92,7 @@ public class PAWN extends Piece {
         }
 
         // Check if that pawn just moved 2 squares
-        Move lastMove = gamePanel.getLastMove();
+        Move lastMove = Board.getLastMove();
 
         if (lastMove != null) {
             return lastMove.getEndCol() == newCol &&
@@ -100,6 +103,24 @@ public class PAWN extends Piece {
         }
 
         return false;
+    }
+
+    public ArrayList<int[]> getPawnAttacks(Piece[][] board) {
+        ArrayList<int[]> attacks = new ArrayList<>();
+        int direction = (color == 0 && whiteOnBottom) || (color == 1 && !whiteOnBottom) ? -1 : 1;
+
+        int attackRow = row + direction;
+        if (attackRow < 8 && attackRow >= 0) {
+            if (col - 1 >= 0) {
+                attacks.add(new int[]{attackRow, col - 1});
+            }
+
+            if (col + 1 < 8) {
+                attacks.add(new int[]{attackRow, col + 1});
+            }
+        }
+
+        return attacks;
     }
 }
 //        if (color.equals("WHITE") && whiteOnBottom) {

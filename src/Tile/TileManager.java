@@ -1,5 +1,6 @@
 package Tile;
 
+import logic.Board;
 import main.GamePanel;
 
 import javax.imageio.ImageIO;
@@ -45,13 +46,13 @@ public class TileManager {
         }
     }
 
-    public void render(Graphics2D g2) {
+    public void render(Graphics2D g2, Board board) {
 
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
 
-                int x = col * panel.tileSize;
-                int y = row * panel.tileSize;
+                int x = (col * panel.tileSize) + panel.xShift;
+                int y = (row * panel.tileSize) + panel.yShift;
                 int tileIndex = (row + col) % 2 == 0 ? 1 : 0;
 
                 if (panel.isSelected(row, col)) {
@@ -65,16 +66,16 @@ public class TileManager {
         }
     }
 
-    public void renderDot(Graphics2D g2) {
+    public void renderDot(Graphics2D g2, Board board) {
 
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
 
-                int x = col * panel.tileSize;
-                int y = row * panel.tileSize;
+                int x = (col * panel.tileSize) + panel.xShift;
+                int y = (row * panel.tileSize) + panel.yShift;
 
                 if (panel.isPossibleMove(row, col)) {
-                    if (panel.board[row][col] != null) {
+                    if (Board.board[row][col] != null) {
                         g2.drawImage(tile[4].image, x, y, panel.tileSize, panel.tileSize, null);
                     } else {
                         g2.drawImage(tile[3].image, x + dotShift, y + dotShift, dotSize, dotSize, null);

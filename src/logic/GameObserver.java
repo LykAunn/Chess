@@ -1,0 +1,18 @@
+package logic;
+
+import Pieces.Move;
+import Pieces.Piece;
+
+import java.util.ArrayList;
+
+public interface GameObserver {
+    void onMoveExecuted(Move move);
+    void onPieceSelected(int row, int col, ArrayList<Move> possibleMoves);
+    void onSelectionCleared();
+    void onGameStateChanged(GameState newState);
+    void onTurnChanged(int currentPlayer);
+    void onPieceCaptured(Piece piece);
+    void onPawnPromotion(int row, int col, int color);
+    void onHistoryAdded(Move move);
+
+}
