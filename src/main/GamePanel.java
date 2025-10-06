@@ -25,7 +25,6 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     public int totalBoardWidth = boardWidth + 40; // Board with the border around
     public int totalBoardHeight = boardHeight + tileSize; // Board with the border around
 
-
     // Side Menu size
     public final int menuWidth = tileSize * 8;
     public int menuStartX = totalBoardWidth;
@@ -49,15 +48,15 @@ public class GamePanel extends JPanel implements Runnable, GameObserver {
     private int mouseX = 0;
     private int mouseY = 0;
 
-    private Board gameBoard;
+    private final Board gameBoard;
 
     // Managers
     private final TileManager tileManager;
     final PieceManager pieceManager;
     private final UI ui;
     private final SideMenu sideMenu;
-    private PawnPromotionMenu pawnPromotionMenu;
-    private MoveHistory moveHistory;
+    private final PawnPromotionMenu pawnPromotionMenu;
+    private final MoveHistory moveHistory;
     Thread gameThread;
     final int fps = 60;
 

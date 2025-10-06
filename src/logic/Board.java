@@ -98,7 +98,7 @@ public class Board {
             // Determine which row the rooks are on
             int whichRow = (currentColor == 0 && whiteOnBottom) || (currentColor == 1 && !whiteOnBottom) ? 7 : 0;
 
-            // Determine if this is kingside or queenside based on king movement direction
+            // Determine if this is king side or queen side based on king movement direction
             boolean isKingsideCastle;
             if (whiteOnBottom) {
                 // Normal: kingside = moving right (positive direction)

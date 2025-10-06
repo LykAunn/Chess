@@ -6,6 +6,7 @@ import Pieces.PieceType;
 import main.SideMenu;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class MoveHistory {
     public ArrayList<Move> history;
@@ -60,18 +61,13 @@ public class MoveHistory {
 
     public char promotionSymbol(String typeOfMove) {
         if (typeOfMove == null) return '?';
-        switch (typeOfMove) {
-            case "PROMOTEQUEEN":
-                return 'Q';
-            case "PROMOTEROOK":
-                return 'R';
-            case "PROMOTEKNIGHT":
-                return 'N';
-            case "PROMOTEBISHOP":
-                return 'B';
-            default:
-                return '?';
-        }
+        return switch (typeOfMove) {
+            case "PROMOTEQUEEN" -> 'Q';
+            case "PROMOTEROOK" -> 'R';
+            case "PROMOTEKNIGHT" -> 'N';
+            case "PROMOTEBISHOP" -> 'B';
+            default -> '?';
+        };
     }
 
     public String toAlgebraicString(Move move) {
@@ -83,9 +79,9 @@ public class MoveHistory {
 
         // Castling Checks
         if (move.getPieceMoved() == PieceType.KING) {
-            if (move.getTypeOfMove() == "CASTLEKINGSIDE") {
+            if (Objects.equals(move.getTypeOfMove(), "CASTLEKINGSIDE")) {
                 return "o-o";
-            } else if (move.getTypeOfMove() == "CASTLEQUEENSIDE") {
+            } else if (Objects.equals(move.getTypeOfMove(), "CASTLEQUEENSIDE")) {
                 return "o-o-o";
             }
         }

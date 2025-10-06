@@ -5,7 +5,7 @@ import java.awt.event.MouseEvent;
 
 public class Mouse extends MouseAdapter {
 
-    private GamePanel gamePanel;
+    private final GamePanel gamePanel;
     public int x, y;
     public boolean pressed;
 
