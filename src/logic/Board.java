@@ -6,8 +6,20 @@ import main.Sound;
 import java.util.ArrayList;
 
 public class Board {
+
+    // CONSTANTS
+    public final int WHITE = 0;
+    public final int BLACK = 1;
+    public final int BOARD_SIZE = 8;
+    public final int CASTLING_KING_MOVE_DISTANCE = 2;
+    public final int CASTING_QUEEN_MOVE_DISTANCE = 3;
+    public final int FIRST_ROW = 0;
+    public final int LAST_ROW = 7;
+
     private GameObserver observer;
     public static Piece[][] board;
+    public static boolean[][] whiteAtkMap;
+    public static boolean[][] blackAtkMap;
     private int currentColor = 0;
     private ArrayList<Move> moveHistory;
     private static Move lastMove;
@@ -28,7 +40,9 @@ public class Board {
     private String promotedPiece = "";
 
     public Board() {
-        board = new Piece[8][8];
+        board = new Piece[BOARD_SIZE][BOARD_SIZE];
+        whiteAtkMap = new boolean[BOARD_SIZE][BOARD_SIZE];
+        blackAtkMap = new boolean[BOARD_SIZE][BOARD_SIZE];
         moveHistory = new ArrayList<>();
     }
 
@@ -84,69 +98,19 @@ public class Board {
 
         String typeOfMove = null;
 
-        //En Passant
-        if (isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
-            capturedPiece = board[fromRow][toCol];
-            observer.onPieceCaptured(capturedPiece);
-            board[fromRow][toCol] = null;
-            typeOfMove = "ENPASSANT";
+        // EN PASSANT
+        if(isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
+            capturedPiece = handleEnPassant(fromRow, toCol);
+            typeOfMove = "EnPassant";
         }
 
+        // CASTLING
         if (isCastleMove(fromRow, fromCol, toRow, toCol)) {
-            System.out.println("Current Color = " + currentColor + " WhiteOnBottom = " + whiteOnBottom);
+            handleCastling(isKingSideCastle(fromCol, toCol));
+            typeOfMove = determineCastlingType(isKingSideCastle(fromCol, toCol));
 
-            // Determine which row the rooks are on
-            int whichRow = (currentColor == 0 && whiteOnBottom) || (currentColor == 1 && !whiteOnBottom) ? 7 : 0;
-
-            // Determine if this is king side or queen side based on king movement direction
-            boolean isKingsideCastle;
-            if (whiteOnBottom) {
-                // Normal: kingside = moving right (positive direction)
-                isKingsideCastle = toCol > fromCol;
-            } else {
-                // Flipped: kingside = moving left (negative direction)
-                isKingsideCastle = toCol < fromCol;
-            }
-
-            if (isKingsideCastle) {
-                // KINGSIDE CASTLE
-                int rookStartCol, rookEndCol;
-
-                if (whiteOnBottom) {
-                    // Normal orientation: kingside rook at column 7, moves to column 5
-                    rookStartCol = 7;
-                    rookEndCol = 5;
-                } else {
-                    // Flipped orientation: kingside rook at column 0, moves to column 2
-                    rookStartCol = 0;
-                    rookEndCol = 2;
-                }
-
-                Piece castlePiece = board[whichRow][rookStartCol];
-                board[whichRow][rookStartCol] = null;
-                board[whichRow][rookEndCol] = castlePiece;
-
-                typeOfMove = "CASTLEKINGSIDE";
-            } else {
-                // QUEENSIDE CASTLE
-                int rookStartCol, rookEndCol;
-
-                if (whiteOnBottom) {
-                    // Normal orientation: queenside rook at column 0, moves to column 3
-                    rookStartCol = 0;
-                    rookEndCol = 3;
-                } else {
-                    // Flipped orientation: queenside rook at column 7, moves to column 5
-                    rookStartCol = 7;
-                    rookEndCol = 5;
-                }
-
-                Piece castlePiece = board[whichRow][rookStartCol];
-                board[whichRow][rookStartCol] = null;
-                board[whichRow][rookEndCol] = castlePiece;
-
-                typeOfMove = "CASTLEQUEENSIDE";
-            }
+            // Update castling booleans
+            updateCastlingFlags(piece, fromRow, fromCol);
         }
 
         // Execute the move
@@ -155,6 +119,8 @@ public class Board {
         piece.row = toRow;
         piece.col = toCol;
         PieceType capturedType = capturedPiece == null ? null : capturedPiece.getType();
+
+        updateAtkMap(currentColor);
 
         if (pawnAbleToPromote(toRow, toCol, currentColor)) {
             observer.onPawnPromotion(toRow, toCol, currentColor);
@@ -170,15 +136,12 @@ public class Board {
             observer.onPieceCaptured(capturedPiece);
         }
 
-        // Update castling booleans
-        updateCastlingFlags(piece, fromRow, fromCol);
-
         //Switch turns
-        currentColor = currentColor == 0 ? 1 : 0;
+        changeColor();
 
         // Check game state for new current player
         if (isInCheck(currentColor)) {
-            System.out.println("CHECK ON " + (currentColor == 0 ? "WHITE" : "BLACK") + " move");
+            System.out.println("CHECK ON " + (currentColor == WHITE ? "WHITE" : "BLACK") + " move");
             if (checkmate(currentColor)) {
                 gameState = GameState.CHECKMATE;
                 playSE(9);
@@ -201,16 +164,92 @@ public class Board {
             playRandomSE(1, 2);
         }
 
-
         //Notify Observers about the move
+        notifyObservers(capturedPiece);
+
+    }
+
+    public void notifyObservers(Piece capturedPiece) {
         if (observer != null) {
+
+            if (capturedPiece != null) {
+                observer.onPieceCaptured(capturedPiece);
+            }
+
             observer.onMoveExecuted(lastMove);
             observer.onTurnChanged(currentColor);
             observer.onGameStateChanged(gameState);
             observer.onHistoryAdded(lastMove);
             displayBoard();
         }
+    }
 
+    public Piece handleEnPassant(int fromRow, int toCol) {
+        Piece captured = board[fromRow][toCol];
+        board[fromRow][toCol] = null;
+        return captured;
+    }
+
+    public boolean isKingSideCastle(int fromCol, int toCol) {
+        if (whiteOnBottom) {
+            // Normal: kingside = moving right (positive direction)
+            return toCol > fromCol;
+        } else {
+            // Flipped: kingside = moving left (negative direction)
+            return toCol < fromCol;
+        }
+    }
+
+    public void handleCastling(boolean isKingsideCastle) {
+
+        // Determine which row the rooks are on
+        int whichRow = (currentColor == WHITE && whiteOnBottom) || (currentColor == BLACK && !whiteOnBottom) ? LAST_ROW : FIRST_ROW;
+
+        if (isKingsideCastle) {
+            // KINGSIDE CASTLE
+            int rookStartCol, rookEndCol;
+
+            if (whiteOnBottom) {
+                // Normal orientation: kingside rook at column 7, moves to column 5
+                rookStartCol = LAST_ROW;
+                rookEndCol = 5;
+            } else {
+                // Flipped orientation: kingside rook at column 0, moves to column 2
+                rookStartCol = FIRST_ROW;
+                rookEndCol = 2;
+            }
+
+            Piece castlePiece = board[whichRow][rookStartCol];
+            board[whichRow][rookStartCol] = null;
+            board[whichRow][rookEndCol] = castlePiece;
+
+        } else {
+            // QUEENSIDE CASTLE
+            int rookStartCol, rookEndCol;
+
+            if (whiteOnBottom) {
+                // Normal orientation: queenside rook at column 0, moves to column 3
+                rookStartCol = FIRST_ROW;
+                rookEndCol = 3;
+            } else {
+                // Flipped orientation: queenside rook at column 7, moves to column 5
+                rookStartCol = LAST_ROW;
+                rookEndCol = 5;
+            }
+
+            Piece castlePiece = board[whichRow][rookStartCol];
+            board[whichRow][rookStartCol] = null;
+            board[whichRow][rookEndCol] = castlePiece;
+
+        }
+    }
+
+    public String determineCastlingType(boolean isKingsideCastle) {
+        if (isKingsideCastle) {
+            return "CASTLEKINGSIDE";
+        } else {
+            return "CASTLEQUEENSIDE";
+        }
     }
 
     public void clearSelection() {
@@ -240,9 +279,14 @@ public class Board {
 
         board[row][col] = newPiece;
         popUpShown = false;
-        currentColor = currentColor == 0 ? 1 : 0;
+        changeColor();
 
     }
+
+    public void changeColor() {
+        currentColor = currentColor == WHITE ? BLACK : WHITE;
+    }
+
     //Game logic
     public boolean isValidMove(int fromRow, int fromCol, int toRow, int toCol) {
         Piece piece = getPiece(fromRow, fromCol);
@@ -320,28 +364,24 @@ public class Board {
 
         if (originalPiece == null || originalPiece.getType() != PieceType.KING) return false;
 
-        return (Math.abs(toCol - fromCol) == 2) &&
+        return (Math.abs(toCol - fromCol) == CASTLING_KING_MOVE_DISTANCE) &&
                 board[toRow][toCol] == null;
-    }
-
-    public boolean isRightSideCastle(int fromRow, int fromCol, int toRow, int toCol) {
-        return isCastleMove(fromRow, fromCol, toRow, toCol) && (toCol - fromCol) == 2;
     }
 
     public boolean pawnAbleToPromote(int row, int col, int colorToPromote) {
         if (board[row][col] == null) return false;
         if (board[row][col].getColor() != colorToPromote) return false;
-        int rowToPromote = (colorToPromote == 0 && whiteOnBottom) || (colorToPromote == 1 && !whiteOnBottom) ? 0 : 7;
+        int rowToPromote = (colorToPromote == WHITE && whiteOnBottom) || (colorToPromote == BLACK && !whiteOnBottom) ? FIRST_ROW : LAST_ROW;
 
         return board[row][col].getType() == PieceType.PAWN && row == rowToPromote;
     }
 
     // Check detection
     public boolean isAttacked(int targetRow, int targetCol, int defendingColor) {
-        int attackingColor = defendingColor == 0 ? 1 : 0;
+        int attackingColor = getOtherColor(defendingColor);
 
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
                 Piece piece = board[row][col];
 
                 if (piece != null && piece.getColor() == attackingColor) {
@@ -372,8 +412,8 @@ public class Board {
     }
 
     public int[] findKing(int color) {
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
                 Piece piece = board[row][col];
                 if (piece != null && piece.getColor() == color && piece.getType() == PieceType.KING) {
                     return new int[]{row, col};
@@ -383,8 +423,12 @@ public class Board {
         return null;
     }
 
+    public int returnOpponentColor(int color) {
+        return color == WHITE ? BLACK : WHITE;
+    }
+
     public boolean checkmate(int color) {
-        int opponentColor = color == 0 ? 1 : 0;
+        int opponentColor = returnOpponentColor(color);
 
         // Must be in check
         if (!isInCheck(color)) {
@@ -392,8 +436,8 @@ public class Board {
         }
 
         // Check for legal moves
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
                 Piece piece = board[row][col];
                 if (piece != null && piece.getColor() == opponentColor) {
                     ArrayList<Move> legalMoves = getLegalMoves(piece);
@@ -418,8 +462,8 @@ public class Board {
             return false;
         }
 
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
                 Piece piece = board[row][col];
                 if (piece != null && piece.getColor() == color) {
                     ArrayList<Move> legalMoves = getLegalMoves(piece);
@@ -441,13 +485,13 @@ public class Board {
         if (isAttacked(kingRow, kingCol + direction, color) ||
                 isAttacked(kingRow, kingCol + (direction * 2), color)) return false;
 
-        int rookKingSide = whiteOnBottom ? 7 : 0;
+        int rookKingSide = whiteOnBottom ? LAST_ROW : FIRST_ROW;
         Piece rook = board[kingRow][rookKingSide];
         return rook != null && rook.getType() == PieceType.ROOK && rook.getColor() == color;
     }
 
     private boolean canCastleQueenside(int kingRow, int kingCol, int playercolor) {
-        int direction = whiteOnBottom ? 1 : -1;
+        int direction = whiteOnBottom ? BLACK : -1;
         if (board[kingRow][kingCol - direction] != null &&
                 board[kingRow][kingCol - (direction * 2)] != null &&
                 board[kingRow][kingCol - (direction * 3)] != null) return false;
@@ -455,17 +499,17 @@ public class Board {
         if (isAttacked(kingRow, kingCol + direction, playercolor) ||
                 isAttacked(kingRow, kingCol + (direction * 2), playercolor)) return false;
 
-    int rookQueenSide = whiteOnBottom ? 0 : 7;
+    int rookQueenSide = whiteOnBottom ? FIRST_ROW : LAST_ROW;
         Piece rook = board[kingRow][rookQueenSide];
         return rook != null && rook.getType() == PieceType.ROOK && rook.getColor() == playercolor;
     }
 
     private boolean hasKingMoved(int playerColor) {
-        return (playerColor == 0) ? whiteKingMoved : blackKingMoved;
+        return (playerColor == WHITE) ? whiteKingMoved : blackKingMoved;
     }
 
     private boolean hasRookMoved(int playerColor, boolean rightSide) {
-        if (playerColor == 0) {  // White
+        if (playerColor == WHITE) {
             return rightSide ? whiteKingsideRookMoved : whiteQueensideRookMoved;
         } else {  // Black
             return rightSide ? blackKingsideRookMoved : blackQueensideRookMoved;
@@ -474,7 +518,7 @@ public class Board {
 
     private void updateCastlingFlags(Piece piece, int fromRow, int fromCol) {
         if (piece.getType() == PieceType.KING) {
-            if (piece.getColor() == 0) {  // White
+            if (piece.getColor() == WHITE) {  // White
                 whiteKingMoved = true;
             } else {  // Black
                 blackKingMoved = true;
@@ -482,20 +526,20 @@ public class Board {
         }
 
         if (piece.getType() == PieceType.ROOK) {
-            if (piece.getColor() == 0) {  // White rooks
-                int whiteBackRank = whiteOnBottom ? 7 : 0;
+            if (piece.getColor() == WHITE) {  // White rooks
+                int whiteBackRank = whiteOnBottom ? LAST_ROW : FIRST_ROW;
 
-                if (fromRow == whiteBackRank && fromCol == 0) {  // Queenside rook
+                if (fromRow == whiteBackRank && fromCol == FIRST_ROW) {  // Queenside rook
                     whiteQueensideRookMoved = true;
-                } else if (fromRow == whiteBackRank && fromCol == 7) {  // Kingside rook
+                } else if (fromRow == whiteBackRank && fromCol == LAST_ROW) {  // Kingside rook
                     whiteKingsideRookMoved = true;
 
                 }
             } else {  // Black rooks
-                int blackBackRank = whiteOnBottom ? 0 : 7;
-                if (fromRow == blackBackRank && fromCol == 0) {  // Queenside rook
+                int blackBackRank = whiteOnBottom ? FIRST_ROW : LAST_ROW;
+                if (fromRow == blackBackRank && fromCol == FIRST_ROW) {  // Queenside rook
                     blackQueensideRookMoved = true;
-                } else if (fromRow == blackBackRank && fromCol == 7) {  // Kingside rook
+                } else if (fromRow == blackBackRank && fromCol == LAST_ROW) {  // Kingside rook
                     blackKingsideRookMoved = true;
                 }
             }
@@ -504,7 +548,7 @@ public class Board {
 
     public ArrayList<Move> getCastlingMoves(int kingRow, int kingCol, int playerColor) {
         ArrayList<Move> castlingMoves = new ArrayList<>();
-        int direction = whiteOnBottom ? 1 : -1;
+        int direction = whiteOnBottom ? BLACK : -1;
 
         // Unable to castle in check
         if (isAttacked(kingRow, kingCol, playerColor)) {
@@ -515,8 +559,8 @@ public class Board {
 
             if (canCastleKingside(kingRow, kingCol, playerColor)) {
 
-                if (!isAttacked(kingRow, kingCol + direction, playerColor) && !isAttacked(kingRow, kingCol + (direction * 2), playerColor)) {
-                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol + (direction * 2), "CASTLERIGHT", null, PieceType.KING, playerColor));
+                if (!isAttacked(kingRow, kingCol + direction, playerColor) && !isAttacked(kingRow, kingCol + (direction * CASTLING_KING_MOVE_DISTANCE), playerColor)) {
+                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol + (direction * CASTLING_KING_MOVE_DISTANCE), "CASTLERIGHT", null, PieceType.KING, playerColor));
                     System.out.println("FOUND CASTLE RIGHT");
                 }
             }
@@ -526,8 +570,8 @@ public class Board {
         if (!hasKingMoved(playerColor) && !hasRookMoved(playerColor, false) && canCastleQueenside(kingRow, kingCol, playerColor)) {
             if (!canCastleKingside(kingRow, kingCol, playerColor)) {
 
-                if (!isAttacked(kingRow, kingCol - direction, playerColor) && !isAttacked(kingRow, kingCol - (direction * 2), playerColor)) {
-                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol - (direction * 2), "CASTLERIGHT", null, PieceType.KING, playerColor));
+                if (!isAttacked(kingRow, kingCol - direction, playerColor) && !isAttacked(kingRow, kingCol - (direction * CASTLING_KING_MOVE_DISTANCE), playerColor)) {
+                    castlingMoves.add(new Move(kingRow, kingCol, kingRow, kingCol - (direction * CASTLING_KING_MOVE_DISTANCE), "CASTLERIGHT", null, PieceType.KING, playerColor));
                     System.out.println("FOUND CASTLE RIGHT");
                 }
             }
@@ -544,6 +588,47 @@ public class Board {
         whiteOnBottom = whiteBottom;
     }
 
+    public void updateAtkMap(int currentColor) { //Squares currentColor attacks
+        clearAtkMap(currentColor);
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                Piece currentPiece = board[row][col];
+
+                if (currentPiece != null && currentPiece.getColor() == currentColor) {
+                    addPieceAttacks(currentPiece, currentColor);
+                }
+            }
+        }
+    }
+
+    private void addPieceAttacks(Piece piece, int color) {
+        ArrayList<Move> attackedSquares = piece.getPossibleMoves(board);
+
+        for (Move move : attackedSquares) {
+            markSquareAsAttacked(move.getEndRow(), move.getEndCol(), color);
+        }
+    }
+
+    private void markSquareAsAttacked(int row, int col, int color) {
+        if (color == BLACK) {
+            blackAtkMap[row][col] = true;
+        } else {
+            whiteAtkMap[row][col] = true;
+        }
+    }
+
+    public void clearAtkMap(int currentColor) {
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (currentColor == BLACK) {
+                    blackAtkMap[i][j] = false;
+                } else {
+                    whiteAtkMap[i][j] = false;
+                }
+            }
+        }
+    }
+
     // Getters
     public Piece getPiece(int row, int col) {
         return board[row][col];
@@ -557,6 +642,10 @@ public class Board {
         return currentColor == 0 ? 1 : 0;
     }
 
+    public int getOtherColor(int color) {
+        return color == BLACK ? WHITE : BLACK;
+    }
+
     public static Move getLastMove() {
         return lastMove;
     }
@@ -566,13 +655,11 @@ public class Board {
     }
 
     public void initializeBoard() {
-        int whiteColor = 0; // white = 0
-        int blackColor = 1; // black = 1
 
         // Row positions depend on orientation
-        int whiteRow1 = whiteOnBottom ? 7 : 0; // main pieces
+        int whiteRow1 = whiteOnBottom ? LAST_ROW : FIRST_ROW; // main pieces
         int whiteRow2 = whiteOnBottom ? 6 : 1; // pawns
-        int blackRow1 = whiteOnBottom ? 0 : 7; // main pieces
+        int blackRow1 = whiteOnBottom ? FIRST_ROW : LAST_ROW; // main pieces
         int blackRow2 = whiteOnBottom ? 1 : 6; // pawns
 
         // Column positions for king/queen
@@ -582,39 +669,39 @@ public class Board {
         int blackKingCol  = whiteOnBottom ? 4 : 3;
 
         // Black pieces (top side depending on orientation)
-        board[blackRow1][0] = new ROOK(blackColor, blackRow1, 0, whiteOnBottom);
-        board[blackRow1][1] = new KNIGHT(blackColor, blackRow1, 1, whiteOnBottom);
-        board[blackRow1][2] = new BISHOP(blackColor, blackRow1, 2, whiteOnBottom);
-        board[blackRow1][blackQueenCol] = new QUEEN(blackColor, blackRow1, blackQueenCol, whiteOnBottom);
-        board[blackRow1][blackKingCol]  = new KING(blackColor, blackRow1, blackKingCol, whiteOnBottom);
-        board[blackRow1][5] = new BISHOP(blackColor, blackRow1, 5, whiteOnBottom);
-        board[blackRow1][6] = new KNIGHT(blackColor, blackRow1, 6, whiteOnBottom);
-        board[blackRow1][7] = new ROOK(blackColor, blackRow1, 7, whiteOnBottom);
+        board[blackRow1][0] = new ROOK(BLACK, blackRow1, 0, whiteOnBottom);
+        board[blackRow1][1] = new KNIGHT(BLACK, blackRow1, 1, whiteOnBottom);
+        board[blackRow1][2] = new BISHOP(BLACK, blackRow1, 2, whiteOnBottom);
+        board[blackRow1][blackQueenCol] = new QUEEN(BLACK, blackRow1, blackQueenCol, whiteOnBottom);
+        board[blackRow1][blackKingCol]  = new KING(BLACK, blackRow1, blackKingCol, whiteOnBottom);
+        board[blackRow1][5] = new BISHOP(BLACK, blackRow1, 5, whiteOnBottom);
+        board[blackRow1][6] = new KNIGHT(BLACK, blackRow1, 6, whiteOnBottom);
+        board[blackRow1][7] = new ROOK(BLACK, blackRow1, 7, whiteOnBottom);
 
         for (int i = 0; i < 8; i++) {
-            board[blackRow2][i] = new PAWN(blackColor, blackRow2, i, whiteOnBottom);
+            board[blackRow2][i] = new PAWN(BLACK, blackRow2, i, whiteOnBottom);
         }
 
         // White pieces (bottom side depending on orientation)
-        board[whiteRow1][0] = new ROOK(whiteColor, whiteRow1, 0, whiteOnBottom);
-        board[whiteRow1][1] = new KNIGHT(whiteColor, whiteRow1, 1, whiteOnBottom);
-        board[whiteRow1][2] = new BISHOP(whiteColor, whiteRow1, 2, whiteOnBottom);
-        board[whiteRow1][whiteQueenCol] = new QUEEN(whiteColor, whiteRow1, whiteQueenCol, whiteOnBottom);
-        board[whiteRow1][whiteKingCol]  = new KING(whiteColor, whiteRow1, whiteKingCol, whiteOnBottom);
-        board[whiteRow1][5] = new BISHOP(whiteColor, whiteRow1, 5, whiteOnBottom);
-        board[whiteRow1][6] = new KNIGHT(whiteColor, whiteRow1, 6, whiteOnBottom);
-        board[whiteRow1][7] = new ROOK(whiteColor, whiteRow1, 7, whiteOnBottom);
+        board[whiteRow1][0] = new ROOK(WHITE, whiteRow1, 0, whiteOnBottom);
+        board[whiteRow1][1] = new KNIGHT(WHITE, whiteRow1, 1, whiteOnBottom);
+        board[whiteRow1][2] = new BISHOP(WHITE, whiteRow1, 2, whiteOnBottom);
+        board[whiteRow1][whiteQueenCol] = new QUEEN(WHITE, whiteRow1, whiteQueenCol, whiteOnBottom);
+        board[whiteRow1][whiteKingCol]  = new KING(WHITE, whiteRow1, whiteKingCol, whiteOnBottom);
+        board[whiteRow1][5] = new BISHOP(WHITE, whiteRow1, 5, whiteOnBottom);
+        board[whiteRow1][6] = new KNIGHT(WHITE, whiteRow1, 6, whiteOnBottom);
+        board[whiteRow1][7] = new ROOK(WHITE, whiteRow1, 7, whiteOnBottom);
 
-        for (int i = 0; i < 8; i++) {
-            board[whiteRow2][i] = new PAWN(whiteColor, whiteRow2, i, whiteOnBottom);
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            board[whiteRow2][i] = new PAWN(WHITE, whiteRow2, i, whiteOnBottom);
         }
 
         playSE(0);
     }
 
     public void displayBoard() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
                 if (board[i][j] != null) {
                     System.out.print("[" + board[i][j].getType() + "] ");
                 } else {
