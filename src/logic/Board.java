@@ -68,12 +68,6 @@ public class Board {
         this.observer = observer;
     }
 
-    private void notifyObserver() {
-        if (observer != null) {
-            observer.onGameStateChanged(gameState);
-        }
-    }
-
     public void selectPiece(int row, int col) {
 
         System.out.println(currentColor);
@@ -95,7 +89,6 @@ public class Board {
 
         Piece piece = board[fromRow][fromCol];
         Piece capturedPiece = board[toRow][toCol];
-
         String typeOfMove = null;
 
         // EN PASSANT
@@ -108,17 +101,14 @@ public class Board {
         if (isCastleMove(fromRow, fromCol, toRow, toCol)) {
             handleCastling(isKingSideCastle(fromCol, toCol));
             typeOfMove = determineCastlingType(isKingSideCastle(fromCol, toCol));
-
-            // Update castling booleans
-            updateCastlingFlags(piece, fromRow, fromCol);
         }
 
         // Execute the move
-        board[fromRow][fromCol] = null;
-        board[toRow][toCol] = piece;
-        piece.row = toRow;
-        piece.col = toCol;
+        executeBasicMove(fromRow,fromCol,toRow,toCol, piece);
         PieceType capturedType = capturedPiece == null ? null : capturedPiece.getType();
+
+        // Update castling booleans
+        updateCastlingFlags(piece, fromRow, fromCol);
 
         updateAtkMap(currentColor);
 
@@ -129,25 +119,37 @@ public class Board {
         }
 
         //Record move into Move
-
         lastMove = new Move(fromRow, fromCol, toRow, toCol, typeOfMove, capturedType, piece.getType(), currentColor);
         moveHistory.add(lastMove);
-        if (capturedType != null) {
-            observer.onPieceCaptured(capturedPiece);
-        }
+
+        playMoveSound(isCastleMove(fromRow, fromCol, toRow, toCol), isEnPassantMove(fromRow, fromCol, toRow, toCol),
+                capturedPiece != null);
 
         //Switch turns
         changeColor();
 
         // Check game state for new current player
+        updateGameState();
+
+        //Notify Observers about the move
+        notifyObservers(capturedPiece);
+
+    }
+
+    public void executeBasicMove(int fromRow, int fromCol, int toRow, int toCol, Piece piece) {
+        board[fromRow][fromCol] = null;
+        board[toRow][toCol] = piece;
+        piece.row = toRow;
+        piece.col = toCol;
+    }
+
+    public void updateGameState() {
         if (isInCheck(currentColor)) {
             System.out.println("CHECK ON " + (currentColor == WHITE ? "WHITE" : "BLACK") + " move");
             if (checkmate(currentColor)) {
                 gameState = GameState.CHECKMATE;
-                playSE(9);
             } else {
                 gameState = GameState.CHECK;
-                playRandomSE(7, 8);
             }
 
         } else if (isStaleMate(currentColor)) {
@@ -155,19 +157,24 @@ public class Board {
         } else {
             gameState = GameState.PLAYING;
         }
+    }
 
-        if (isCastleMove(fromRow, fromCol, toRow, toCol)) {
+    public void playMoveSound(boolean isCastle, boolean isEnPassant, boolean isCapture) {
+        if (gameState == GameState.CHECKMATE) {
+            playSE(9);
+        } else if (gameState == GameState.CHECK) {
+            playRandomSE(7, 8);
+        } else if (isCastle) {
             playRandomSE(5, 6);
-        } else if (capturedPiece != null || isEnPassantMove(fromRow, fromCol, toRow, toCol)) {
+        } else if (isCapture || isEnPassant) {
             playRandomSE(3, 4);
         } else {
             playRandomSE(1, 2);
         }
 
-        //Notify Observers about the move
-        notifyObservers(capturedPiece);
 
     }
+
 
     public void notifyObservers(Piece capturedPiece) {
         if (observer != null) {
