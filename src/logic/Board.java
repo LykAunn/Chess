@@ -1,6 +1,7 @@
 package logic;
 
 import Pieces.*;
+import logic.ai.AI;
 import main.Sound;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class Board {
     private GameState gameState = GameState.TITLE;
     public boolean whiteOnBottom;
     Sound sound = new Sound();
+    public AI ai;
     public boolean popUpShown = false;
 
     // Flags to track if pieces have moved
@@ -44,6 +46,7 @@ public class Board {
         whiteAtkMap = new boolean[BOARD_SIZE][BOARD_SIZE];
         blackAtkMap = new boolean[BOARD_SIZE][BOARD_SIZE];
         moveHistory = new ArrayList<>();
+        ai = new AI(this, BLACK);
     }
 
     public void startGame() {
@@ -118,9 +121,7 @@ public class Board {
             return;
         }
 
-        //Record move into Move
-        lastMove = new Move(fromRow, fromCol, toRow, toCol, typeOfMove, capturedType, piece.getType(), currentColor);
-        moveHistory.add(lastMove);
+        recordMove(fromRow, fromCol, toRow, toCol, piece, typeOfMove, capturedType);
 
         playMoveSound(isCastleMove(fromRow, fromCol, toRow, toCol), isEnPassantMove(fromRow, fromCol, toRow, toCol),
                 capturedPiece != null);
@@ -128,12 +129,21 @@ public class Board {
         //Switch turns
         changeColor();
 
+        Move bestMove = ai.findBestMove(3);
+        System.out.println("Best Move" + bestMove);
+
         // Check game state for new current player
         updateGameState();
 
         //Notify Observers about the move
         notifyObservers(capturedPiece);
 
+    }
+
+    public void recordMove(int fromRow, int fromCol, int toRow, int toCol, Piece piece, String typeOfMove, PieceType capturedType) {
+        //Record move into Move
+        lastMove = new Move(fromRow, fromCol, toRow, toCol, typeOfMove, capturedType, piece.getType(), currentColor);
+        moveHistory.add(lastMove);
     }
 
     public void executeBasicMove(int fromRow, int fromCol, int toRow, int toCol, Piece piece) {
@@ -337,7 +347,7 @@ public class Board {
         return isLegal;
     }
 
-    private ArrayList<Move> getLegalMoves(Piece piece) {
+    public ArrayList<Move> getLegalMoves(Piece piece) {
         ArrayList<Move> allMoves = piece.getPossibleMoves(board);
         ArrayList<Move> legalMoves = new ArrayList<>();
 
